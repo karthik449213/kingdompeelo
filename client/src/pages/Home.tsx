@@ -1,14 +1,17 @@
-import { Hero } from '@/components/ui/hero';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CategoryCard } from '@/components/menu/CategoryCard';
-import { categories, items } from '@/lib/mockData';
 import { ItemCard } from '@/components/menu/ItemCard';
+import { useMenu } from '@/store/useMenu';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'wouter';
+import { Hero } from '@/components/ui/hero';
 
 export default function Home() {
+  // Use store instead of direct mockData import
+  const { categories, items } = useMenu();
+  
   const featuredItems = items.filter(i => i.popular).slice(0, 3);
 
   return (

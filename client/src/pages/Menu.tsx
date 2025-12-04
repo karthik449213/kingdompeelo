@@ -1,7 +1,7 @@
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ItemCard } from '@/components/menu/ItemCard';
-import { categories, subCategories, items } from '@/lib/mockData';
+import { useMenu } from '@/store/useMenu';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useLocation } from 'wouter';
@@ -9,6 +9,8 @@ import { motion } from 'framer-motion';
 
 export default function Menu() {
   const [location] = useLocation();
+  const { categories, subCategories, items } = useMenu();
+  
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeSubCategory, setActiveSubCategory] = useState('all');
   
