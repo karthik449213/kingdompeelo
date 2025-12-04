@@ -1,5 +1,5 @@
 import { Navbar } from '@/components/layout/Navbar';
-import { stats } from '@/lib/mockData';
+// import { stats } from '@/lib/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, LineChart, Line } from 'recharts';
 import { DollarSign, ShoppingBag, Users, Utensils, Plus, Trash2, Edit2 } from 'lucide-react';
@@ -10,10 +10,33 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMenu } from '@/store/useMenu';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+
+// Types for fetched data
+type Item = {
+  _id?: string;
+  id?: string;
+  name?: string;
+  title?: string;
+  price: number;
+  description: string;
+  category?: string;
+  categoryId?: string;
+  image: string;
+};
+
+type Category = {
+  _id?: string;
+  id?: string;
+  name?: string;
+  title?: string;
+  image?: string;
+};
+
+const API_BASE = "http://localhost:5000";
 
 // Mock Data for Charts (Static for now)
 const revenueData = [
@@ -48,12 +71,79 @@ const itemSchema = z.object({
 type ItemFormValues = z.infer<typeof itemSchema>;
 
 export default function Dashboard() {
-  const { items, subCategories, addItem, deleteItem, resetMenu } = useMenu();
+  const { addItem, deleteItem, resetMenu } = useMenu();
+  const [items, setItems] = useState<Item[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [stats, setStats] = useState([
+    { value: 0, change: '' },
+    { value: 0, change: '' },
+    { value: 0, change: '' }
+  ]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [message, setMessage] = useState('');
   
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ItemFormValues>({
     resolver: zodResolver(itemSchema)
   });
+
+  // Authentication check - extracted from kingdomfrontend Dashboard
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Not logged in');
+      window.location.href = '/admin/login';
+      return;
+    }
+
+    const fetchDashboardData = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setStats(data.stats || [
+          { value: 0, change: '' },
+          { value: 0, change: '' },
+          { value: 0, change: '' }
+        ]);
+        setMessage(data.message || 'Dashboard loaded successfully');
+      } catch (err) {
+        console.error('Dashboard Error:', err);
+        alert('Unauthorized');
+        window.location.href = '/admin/login';
+      }
+    };
+
+    const fetchDishes = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/menu/dishes`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        console.log('Dishes response:', data);
+        setItems(Array.isArray(data) ? data : data.dishes || []);
+      } catch (err) {
+        console.error('Dishes Error:', err);
+      }
+    };
+
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/menu/categories`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        console.log('Categories response:', data);
+        setCategories(Array.isArray(data) ? data : data.categories || []);
+      } catch (err) {
+        console.error('Categories Error:', err);
+      }
+    };
+
+    fetchDashboardData();
+    fetchDishes();
+    fetchCategories();
+  }, []);
 
   const onSubmit = (data: ItemFormValues) => {
     // Use a default image if none provided
@@ -113,8 +203,8 @@ export default function Dashboard() {
                          <SelectValue placeholder="Select category" />
                        </SelectTrigger>
                        <SelectContent>
-                         {subCategories.map(sub => (
-                           <SelectItem key={sub.id} value={sub.id}>{sub.title}</SelectItem>
+                         {categories.map(cat => (
+                           <SelectItem key={cat._id || cat.id} value={cat._id || cat.id || ''}>{cat.name || cat.title}</SelectItem>
                          ))}
                        </SelectContent>
                      </Select>
@@ -235,16 +325,20 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {items.map((item) => (
-                    <tr key={item.id} className="hover:bg-muted/10 transition-colors">
+                  {items.map((item) => {
+                    const itemId = (item._id || item.id) as string;
+                    const itemName = item.name || item.title;
+                    const categoryId = item.category || item.categoryId;
+                    return (
+                    <tr key={itemId} className="hover:bg-muted/10 transition-colors">
                       <td className="px-6 py-4">
                         <div className="h-10 w-10 rounded overflow-hidden bg-muted">
-                          <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
+                          <img src={item.image} alt={itemName} className="h-full w-full object-cover" />
                         </div>
                       </td>
-                      <td className="px-6 py-4 font-medium">{item.title}</td>
+                      <td className="px-6 py-4 font-medium">{itemName}</td>
                       <td className="px-6 py-4">
-                        {subCategories.find(sc => sc.id === item.subCategoryId)?.title || 'Uncategorized'}
+                        {categories.find(c => (c._id || c.id) === categoryId)?.name || categories.find(c => (c._id || c.id) === categoryId)?.title || 'Uncategorized'}
                       </td>
                       <td className="px-6 py-4">${item.price.toFixed(2)}</td>
                       <td className="px-6 py-4 text-right">
@@ -256,14 +350,15 @@ export default function Dashboard() {
                             variant="ghost" 
                             size="icon" 
                             className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                            onClick={() => deleteItem(item.id)}
+                            onClick={() => deleteItem(itemId)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );
+                  })}
                 </tbody>
               </table>
             </div>

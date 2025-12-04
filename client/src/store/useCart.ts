@@ -2,19 +2,27 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { toast } from '@/hooks/use-toast';
 
+export interface Customization {
+  noSugar?: boolean;
+  addChilli?: boolean;
+  extraToppings?: boolean;
+  notes?: string;
+}
+
 export interface CartItem {
   id: string;
   title: string;
   price: number;
   quantity: number;
   image?: string;
+  customizations?: Customization;
 }
 
 interface CartState {
   items: CartItem[];
-  addToCart: (item: Omit<CartItem, 'quantity'>) => void;
-  removeFromCart: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
+  addToCart: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
+  removeFromCart: (id: string, customizations?: Customization) => void;
+  updateQuantity: (id: string, quantity: number, customizations?: Customization) => void;
   clearCart: () => void;
   total: () => number;
   itemCount: () => number;
@@ -26,7 +34,12 @@ export const useCart = create<CartState>()(
       items: [],
       addToCart: (item) => {
         set((state) => {
-          const existingItem = state.items.find((i) => i.id === item.id);
+          const customizationKey = JSON.stringify(item.customizations || {});
+          const existingItem = state.items.find(
+            (i) =>
+              i.id === item.id &&
+              JSON.stringify(i.customizations || {}) === customizationKey
+          );
           toast({
             title: "Added to cart",
             description: `${item.title} added to your order.`,
@@ -34,24 +47,48 @@ export const useCart = create<CartState>()(
           if (existingItem) {
             return {
               items: state.items.map((i) =>
-                i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+                i.id === item.id &&
+                JSON.stringify(i.customizations || {}) === customizationKey
+                  ? { ...i, quantity: i.quantity + 1 }
+                  : i
               ),
             };
           }
-          return { items: [...state.items, { ...item, quantity: 1 }] };
+          return { items: [...state.items, { ...item, quantity: item.quantity || 1 }] };
         });
       },
-      removeFromCart: (id) => {
-        set((state) => ({
-          items: state.items.filter((i) => i.id !== id),
-        }));
+      removeFromCart: (id, customizations) => {
+        set((state) => {
+          if (!customizations) {
+            return {
+              items: state.items.filter((i) => i.id !== id),
+            };
+          }
+          const customizationKey = JSON.stringify(customizations);
+          return {
+            items: state.items.filter(
+              (i) =>
+                !(i.id === id &&
+                  JSON.stringify(i.customizations || {}) === customizationKey)
+            ),
+          };
+        });
       },
-      updateQuantity: (id, quantity) => {
-        set((state) => ({
-          items: state.items.map((i) =>
-            i.id === id ? { ...i, quantity: Math.max(0, quantity) } : i
-          ).filter(i => i.quantity > 0),
-        }));
+      updateQuantity: (id, quantity, customizations) => {
+        set((state) => {
+          const customizationKey = customizations ? JSON.stringify(customizations) : '';
+          return {
+            items: state.items
+              .map((i) =>
+                i.id === id &&
+                (!customizations ||
+                  JSON.stringify(i.customizations || {}) === customizationKey)
+                  ? { ...i, quantity: Math.max(0, quantity) }
+                  : i
+              )
+              .filter((i) => i.quantity > 0),
+          };
+        });
       },
       clearCart: () => set({ items: [] }),
       total: () => {

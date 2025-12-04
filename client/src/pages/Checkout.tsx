@@ -31,35 +31,15 @@ export default function Checkout() {
   });
 
   const onSubmit = (data: CheckoutForm) => {
-    // 1. Generate Order Summary
-    let message = `*New Order from ${data.name}*\n\n`;
-    message += `*Items:*\n`;
-    items.forEach(item => {
-      message += `• ${item.title} x ${item.quantity} - $${(item.price * item.quantity).toFixed(2)}\n`;
-    });
-    message += `\n*Total: $${(total() * 1.05).toFixed(2)}*\n`; // Including tax
-    message += `\n*Details:*\n`;
-    message += `📞 Phone: ${data.phone}\n`;
-    message += `📍 Address: ${data.address}\n`;
-    if (data.notes) message += `📝 Notes: ${data.notes}`;
-
-    // 2. Encode and Redirect to WhatsApp
-    // Using a dummy number for demo purposes
-    const phoneNumber = "15551234567"; 
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-
-    window.open(whatsappUrl, '_blank');
-    
+    // Navigate to invoice page for order review
     setIsSubmitted(true);
-    clearCart();
   };
 
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
-        <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
+        <div className="flex-1 flex flex-col items-center justify-center p-4 text-center pt-24">
           <motion.div 
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -67,12 +47,14 @@ export default function Checkout() {
           >
             <CheckCircle className="h-16 w-16" />
           </motion.div>
-          <h1 className="text-4xl font-serif font-bold mb-4">Order Placed!</h1>
+          <h1 className="text-4xl font-serif font-bold mb-4">Order Review</h1>
           <p className="text-muted-foreground max-w-md mb-8">
-            Thank you for your order. We have redirected you to WhatsApp to confirm the details with our restaurant.
+            Please review your order details and choose how to complete your purchase.
           </p>
-          <Link href="/">
-            <Button size="lg" className="rounded-full">Return Home</Button>
+          <Link href="/invoice">
+            <a>
+              <Button size="lg" className="rounded-full">Review Order</Button>
+            </a>
           </Link>
         </div>
         <Footer />
