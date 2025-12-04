@@ -23,9 +23,9 @@ export default function Home() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <h2 className="text-4xl font-serif font-bold mb-4">Explore Our Menu</h2>
+          <h2 className="text-4xl font-serif font-bold mb-4">Fresh & Organic Menu</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            From artisanal burgers to handcrafted cocktails, every item is prepared with the finest ingredients.
+            From detoxifying green juices to indulgent fruit tarts, everything is 100% natural and sugar-free options available.
           </p>
         </motion.div>
 
@@ -40,8 +40,8 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-end mb-12">
             <div>
-              <h2 className="text-3xl font-serif font-bold mb-2">Popular Dishes</h2>
-              <p className="text-muted-foreground">Customer favorites you must try</p>
+              <h2 className="text-3xl font-serif font-bold mb-2">Customer Favorites</h2>
+              <p className="text-muted-foreground">Our best-selling treats you must try</p>
             </div>
             <Link href="/menu">
               <a className="hidden md:flex items-center gap-2 text-primary font-medium hover:gap-3 transition-all">

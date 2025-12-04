@@ -33,14 +33,14 @@ export function Navbar() {
       <div className="container mx-auto px-4 flex items-center justify-between">
         <Link href="/">
           <a className={cn("text-2xl font-serif font-bold tracking-tight", isScrolled || !isHome ? "text-foreground" : "text-white")}>
-            Gourmet<span className="text-primary">.</span>
+            Fresh Squeeze<span className="text-primary">.</span>
           </a>
         </Link>
 
         <div className="hidden md:flex items-center gap-8">
           <Link href="/menu"><a className={cn("text-sm font-medium hover:text-primary transition-colors", isScrolled || !isHome ? "text-foreground" : "text-white/90")}>Menu</a></Link>
           <Link href="/about"><a className={cn("text-sm font-medium hover:text-primary transition-colors", isScrolled || !isHome ? "text-foreground" : "text-white/90")}>About</a></Link>
-          <Link href="/reservations"><a className={cn("text-sm font-medium hover:text-primary transition-colors", isScrolled || !isHome ? "text-foreground" : "text-white/90")}>Reservations</a></Link>
+          <Link href="/reservations"><a className={cn("text-sm font-medium hover:text-primary transition-colors", isScrolled || !isHome ? "text-foreground" : "text-white/90")}>Visit Us</a></Link>
         </div>
 
         <div className="flex items-center gap-4">

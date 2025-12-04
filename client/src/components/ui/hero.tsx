@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
-import heroImg from '@assets/generated_images/high-end_restaurant_interior_with_moody_lighting_and_elegant_table_settings..png';
+import heroImg from '@assets/generated_images/bright_and_airy_juice_bar_interior_with_fresh_fruits_on_display..png';
 
 export function Hero() {
   return (
@@ -10,36 +10,35 @@ export function Hero() {
         className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105 animate-slow-zoom"
         style={{ backgroundImage: `url(${heroImg})` }}
       />
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px]" />
       
       <div className="relative h-full container mx-auto px-4 flex flex-col justify-center items-center text-center text-white z-10">
         <motion.span 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-primary font-medium tracking-widest uppercase text-sm mb-4"
+          className="bg-primary/90 text-white px-4 py-1 rounded-full font-medium tracking-widest uppercase text-xs mb-6 shadow-lg"
         >
-          Taste the Extraordinary
+          100% Organic & Fresh
         </motion.span>
         
         <motion.h1 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold mb-6 leading-tight"
+          className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold mb-6 leading-tight drop-shadow-md"
         >
-          Experience <br /> 
-          <span className="italic text-primary">Modern</span> Dining
+          Squeeze the <br /> 
+          <span className="italic text-primary-foreground text-white">Day</span>
         </motion.h1>
         
         <motion.p 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="text-lg md:text-xl text-white/80 max-w-2xl mb-10 font-light"
+          className="text-lg md:text-xl text-white font-medium max-w-2xl mb-10 drop-shadow-sm"
         >
-          A culinary journey through flavors, crafted with passion and served with elegance. 
-          Order online for an unforgettable meal at home.
+          Refresh your body and soul with our cold-pressed juices, creamy smoothies, and artisanal desserts.
         </motion.p>
         
         <motion.div 
@@ -49,20 +48,20 @@ export function Hero() {
           className="flex flex-col sm:flex-row gap-4"
         >
           <Link href="/menu">
-            <Button size="lg" className="bg-primary text-white hover:bg-primary/90 rounded-full px-8 h-12 text-base">
-              View Menu
+            <Button size="lg" className="bg-white text-black hover:bg-white/90 rounded-full px-8 h-12 text-base shadow-xl">
+              Order Now
             </Button>
           </Link>
-          <Link href="/reservations">
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 rounded-full px-8 h-12 text-base backdrop-blur-sm">
-              Book a Table
+          <Link href="/menu?category=c2">
+            <Button size="lg" variant="outline" className="border-white border-2 text-white hover:bg-white/20 rounded-full px-8 h-12 text-base font-bold backdrop-blur-sm shadow-lg">
+              View Ice Creams
             </Button>
           </Link>
         </motion.div>
       </div>
 
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce text-white/50">
-        <span className="text-sm uppercase tracking-widest text-xs">Scroll to Explore</span>
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce text-white">
+        <span className="text-sm uppercase tracking-widest text-xs font-bold shadow-black/50 drop-shadow-md">Scroll for Freshness</span>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
-import heroImg from '@assets/generated_images/high-end_restaurant_interior_with_moody_lighting_and_elegant_table_settings..png';
-import burgerImg from '@assets/generated_images/gourmet_burger_with_fries_on_a_wooden_board..png';
-import drinkImg from '@assets/generated_images/colorful_cocktail_drink_with_garnish..png';
-import dessertImg from '@assets/generated_images/decadent_chocolate_lava_cake_dessert..png';
+import heroImg from '@assets/generated_images/bright_and_airy_juice_bar_interior_with_fresh_fruits_on_display..png';
+import juiceImg from '@assets/generated_images/freshly_squeezed_orange_and_mango_juice_in_a_glass..png';
+import iceCreamImg from '@assets/generated_images/gourmet_strawberry_sundae_ice_cream..png';
+import dessertImg from '@assets/generated_images/fresh_fruit_tart_dessert..png';
 
 export interface Category {
   id: string;
@@ -30,15 +30,15 @@ export interface Item {
 export const categories: Category[] = [
   {
     id: 'c1',
-    title: 'Main Course',
-    image: burgerImg,
-    slug: 'main-course'
+    title: 'Fresh Juices',
+    image: juiceImg,
+    slug: 'fresh-juices'
   },
   {
     id: 'c2',
-    title: 'Beverages',
-    image: drinkImg,
-    slug: 'beverages'
+    title: 'Ice Creams',
+    image: iceCreamImg,
+    slug: 'ice-creams'
   },
   {
     id: 'c3',
@@ -49,62 +49,71 @@ export const categories: Category[] = [
 ];
 
 export const subCategories: SubCategory[] = [
-  { id: 'sc1', categoryId: 'c1', title: 'Burgers', slug: 'burgers' },
-  { id: 'sc2', categoryId: 'c1', title: 'Steaks', slug: 'steaks' },
-  { id: 'sc3', categoryId: 'c2', title: 'Cocktails', slug: 'cocktails' },
-  { id: 'sc4', categoryId: 'c2', title: 'Coffee', slug: 'coffee' },
-  { id: 'sc5', categoryId: 'c3', title: 'Cakes', slug: 'cakes' },
+  { id: 'sc1', categoryId: 'c1', title: 'Detox Blends', slug: 'detox' },
+  { id: 'sc2', categoryId: 'c1', title: 'Fruit Smoothies', slug: 'smoothies' },
+  { id: 'sc3', categoryId: 'c2', title: 'Sundaes', slug: 'sundaes' },
+  { id: 'sc4', categoryId: 'c2', title: 'Scoops', slug: 'scoops' },
+  { id: 'sc5', categoryId: 'c3', title: 'Fruit Tarts', slug: 'fruit-tarts' },
+  { id: 'sc6', categoryId: 'c3', title: 'Puddings', slug: 'puddings' },
 ];
 
 export const items: Item[] = [
   {
     id: 'i1',
     subCategoryId: 'sc1',
-    title: 'The Gourmet Signature',
-    description: 'Wagyu beef patty, truffle aioli, aged cheddar, caramelized onions on a brioche bun.',
-    price: 18.50,
-    image: burgerImg,
+    title: 'Sunrise Citrus',
+    description: 'Freshly squeezed oranges, mango, and a hint of mint for a morning boost.',
+    price: 8.50,
+    image: juiceImg,
     popular: true
   },
   {
     id: 'i2',
     subCategoryId: 'sc1',
-    title: 'Crispy Chicken Deluxe',
-    description: 'Buttermilk fried chicken, spicy slaw, pickles, house sauce.',
-    price: 14.00,
-    image: burgerImg // Placeholder reuse
+    title: 'Green Glow',
+    description: 'Kale, cucumber, apple, lemon, and ginger. The ultimate detox.',
+    price: 9.00,
+    image: juiceImg // Placeholder reuse
   },
   {
     id: 'i3',
     subCategoryId: 'sc3',
-    title: 'Sunset Boulevard',
-    description: 'Gin, Aperol, fresh citrus, mint garnish.',
-    price: 12.00,
-    image: drinkImg,
+    title: 'Berry Bliss Sundae',
+    description: 'Creamy vanilla bean ice cream topped with fresh strawberries and house-made syrup.',
+    price: 7.50,
+    image: iceCreamImg,
     popular: true
   },
   {
     id: 'i4',
     subCategoryId: 'sc5',
-    title: 'Molten Lava Cake',
-    description: 'Rich dark chocolate cake with a gooey center, served with vanilla bean ice cream.',
-    price: 9.50,
+    title: 'Tropical Fruit Tart',
+    description: 'Buttery pastry shell filled with custard and topped with seasonal kiwi and berries.',
+    price: 6.50,
     image: dessertImg,
     popular: true
   },
   {
     id: 'i5',
-    subCategoryId: 'sc5',
-    title: 'Tiramisu',
-    description: 'Classic Italian dessert with espresso-soaked ladyfingers and mascarpone cream.',
-    price: 8.50,
-    image: dessertImg // Placeholder reuse
+    subCategoryId: 'sc2',
+    title: 'Mango Madness',
+    description: 'Rich mango smoothie blended with yogurt and honey.',
+    price: 8.00,
+    image: juiceImg // Placeholder reuse
+  },
+  {
+    id: 'i6',
+    subCategoryId: 'sc4',
+    title: 'Double Chocolate Scoop',
+    description: 'Premium dark chocolate ice cream made with Belgian cocoa.',
+    price: 5.00,
+    image: iceCreamImg // Placeholder reuse
   }
 ];
 
 export const stats = [
-  { label: "Total Revenue", value: "$12,450", change: "+12%" },
-  { label: "Active Orders", value: "24", change: "+4" },
-  { label: "New Customers", value: "145", change: "+18%" },
-  { label: "Menu Items", value: "42", change: "0" },
+  { label: "Juices Sold", value: "1,250", change: "+15%" },
+  { label: "Active Orders", value: "18", change: "+2" },
+  { label: "New Customers", value: "85", change: "+10%" },
+  { label: "Flavors", value: "32", change: "+4" },
 ];
