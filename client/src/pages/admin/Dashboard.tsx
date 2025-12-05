@@ -64,8 +64,9 @@ const itemSchema = z.object({
   title: z.string().min(2, "Title is required"),
   price: z.string().transform((val) => parseFloat(val)),
   description: z.string().min(5, "Description is required"),
-  subCategoryId: z.string().min(1, "Category is required"),
-  image: z.string().optional(),
+  subCategoryId: z.string().min(1, "Subcategory is required"),
+  // image will be a FileList from the file input; accept any to avoid zod validation errors
+  image: z.any().optional(),
 });
 
 type ItemFormValues = z.infer<typeof itemSchema>;
@@ -85,6 +86,7 @@ export default function Dashboard() {
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ItemFormValues>({
     resolver: zodResolver(itemSchema)
   });
+  const [editingItem, setEditingItem] = useState<Item | null>(null);
 
   // Authentication check - extracted from kingdomfrontend Dashboard
   useEffect(() => {
@@ -116,12 +118,20 @@ export default function Dashboard() {
 
     const fetchDishes = async () => {
       try {
-        const res = await fetch(`${API_BASE}/menu/dishes`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        // Use the API route that returns dishes (menuRoutes exposes /api/menu/dishes)
+        const res = await fetch(`${API_BASE}/api/menu/dishes`);
         const data = await res.json();
         console.log('Dishes response:', data);
-        setItems(Array.isArray(data) ? data : data.dishes || []);
+        setItems(Array.isArray(data) ? data.map(dish => ({
+          _id: dish._id,
+          id: dish._id,
+          title: dish.name,
+          price: dish.price,
+          description: dish.description,
+          // Ensure we extract subcategory id whether populated or not
+          categoryId: dish.subCategory && typeof dish.subCategory === 'object' ? dish.subCategory._id : dish.subCategory,
+          image: dish.image
+        })) : []);
       } catch (err) {
         console.error('Dishes Error:', err);
       }
@@ -129,14 +139,19 @@ export default function Dashboard() {
 
     const fetchCategories = async () => {
       try {
-        const res = await fetch(`${API_BASE}/menu/categories`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        // Subcategories are exposed at /api/menu/subcategories
+        const res = await fetch(`${API_BASE}/api/menu/subcategories`);
         const data = await res.json();
-        console.log('Categories response:', data);
-        setCategories(Array.isArray(data) ? data : data.categories || []);
+        console.log('SubCategories response:', data);
+        setCategories(Array.isArray(data) ? data.map(sub => ({
+          _id: sub._id,
+          id: sub._id,
+          name: sub.name,
+          title: sub.name,
+          image: sub.image
+        })) : []);
       } catch (err) {
-        console.error('Categories Error:', err);
+        console.error('SubCategories Error:', err);
       }
     };
 
@@ -146,20 +161,97 @@ export default function Dashboard() {
   }, []);
 
   const onSubmit = (data: ItemFormValues) => {
-    // Use a default image if none provided
-    const image = data.image || "https://images.unsplash.com/photo-1603569283847-aa295f0d016a?w=800&auto=format&fit=crop&q=60";
-    
-    addItem({
-      title: data.title,
-      price: data.price,
-      description: data.description,
-      subCategoryId: data.subCategoryId,
-      image: image,
-      popular: false
-    });
-    
-    setIsAddDialogOpen(false);
-    reset();
+    (async () => {
+      const token = localStorage.getItem('token');
+      try {
+        const form = new FormData();
+        form.append('name', data.title);
+        form.append('price', String(data.price));
+        form.append('description', data.description);
+        form.append('subCategory', data.subCategoryId);
+
+        // data.image may be a FileList
+        const fileList = (data as any).image as FileList | undefined;
+        if (fileList && fileList.length > 0) {
+          form.append('image', fileList[0]);
+        }
+
+        let res;
+        if (editingItem) {
+          // Update existing
+          res = await fetch(`${API_BASE}/api/menu/dishes/${editingItem._id}`, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}` },
+            body: form,
+          });
+        } else {
+          // Create new
+          res = await fetch(`${API_BASE}/api/menu/dishes`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: form,
+          });
+        }
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error('Save item failed', err);
+          alert('Failed to save item');
+          return;
+        }
+
+        const saved = await res.json();
+        // normalize returned dish
+        const newItem: Item = {
+          _id: saved._id || saved.id,
+          id: saved._id || saved.id,
+          name: saved.name || saved.title,
+          title: saved.name || saved.title,
+          price: saved.price,
+          description: saved.description,
+          categoryId: saved.subCategory && typeof saved.subCategory === 'object' ? saved.subCategory._id : saved.subCategory,
+          image: saved.image,
+        };
+
+        if (editingItem) {
+          setItems(prev => prev.map(i => ((i._id || i.id) === (editingItem._id || editingItem.id) ? newItem : i)));
+        } else {
+          setItems(prev => [newItem, ...prev]);
+        }
+
+        setIsAddDialogOpen(false);
+        reset();
+        setEditingItem(null);
+      } catch (e) {
+        console.error('Submit Error:', e);
+        alert('Failed to save item');
+      }
+    })();
+  };
+
+  // Delete item from server then update local state
+  const handleDelete = async (itemId: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return alert('Not authenticated');
+
+    if (!confirm('Delete this item permanently?')) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/menu/dishes/${itemId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('Delete failed', err);
+        return alert('Failed to delete item');
+      }
+      // Remove locally
+      setItems(prev => prev.filter(i => (i._id || i.id) !== itemId));
+    } catch (e) {
+      console.error('Delete Error:', e);
+      alert('Delete failed');
+    }
   };
 
   return (
@@ -177,11 +269,11 @@ export default function Dashboard() {
              
              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                <DialogTrigger asChild>
-                 <Button className="gap-2"><Plus className="h-4 w-4" /> Add Item</Button>
+                 <Button className="gap-2" onClick={() => { setEditingItem(null); reset(); }}><Plus className="h-4 w-4" /> Add Item</Button>
                </DialogTrigger>
                <DialogContent className="sm:max-w-[425px]">
                  <DialogHeader>
-                   <DialogTitle>Add New Item</DialogTitle>
+                   <DialogTitle>{editingItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
                  </DialogHeader>
                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
                    <div className="space-y-2">
@@ -197,10 +289,10 @@ export default function Dashboard() {
                    </div>
                    
                    <div className="space-y-2">
-                     <Label htmlFor="category">Category</Label>
+                     <Label htmlFor="subcategory">Subcategory</Label>
                      <Select onValueChange={(val) => setValue("subCategoryId", val)}>
                        <SelectTrigger>
-                         <SelectValue placeholder="Select category" />
+                         <SelectValue placeholder="Select subcategory" />
                        </SelectTrigger>
                        <SelectContent>
                          {categories.map(cat => (
@@ -215,6 +307,12 @@ export default function Dashboard() {
                      <Label htmlFor="description">Description</Label>
                      <Textarea id="description" {...register("description")} placeholder="Ingredients and details..." />
                      {errors.description && <p className="text-destructive text-xs">{errors.description.message}</p>}
+                   </div>
+
+                   <div className="space-y-2">
+                     <Label htmlFor="image">Image</Label>
+                     <input id="image" type="file" accept="image/*" {...register('image')} />
+                     <p className="text-xs text-muted-foreground">Upload an image for the item (optional).</p>
                    </div>
 
                    <DialogFooter>
@@ -319,7 +417,7 @@ export default function Dashboard() {
                   <tr>
                     <th className="px-6 py-4">Image</th>
                     <th className="px-6 py-4">Name</th>
-                    <th className="px-6 py-4">Category</th>
+                    <th className="px-6 py-4">Subcategory</th>
                     <th className="px-6 py-4">Price</th>
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
@@ -343,14 +441,33 @@ export default function Dashboard() {
                       <td className="px-6 py-4">${item.price.toFixed(2)}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => {
+                            // open edit dialog populated with item
+                            const itemObj: Item = {
+                              _id: item._id,
+                              id: item.id,
+                              name: item.name,
+                              title: item.title,
+                              price: item.price,
+                              description: item.description,
+                              categoryId: item.categoryId || item.category,
+                              image: item.image,
+                            };
+                            // populate form and open
+                            setEditingItem(itemObj);
+                            setValue('title', itemObj.title || itemObj.name || '');
+                            setValue('price', Number(itemObj.price || 0));
+                            setValue('description', itemObj.description || '');
+                            setValue('subCategoryId', itemObj.categoryId || '');
+                            setIsAddDialogOpen(true);
+                          }}>
                             <Edit2 className="h-4 w-4" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="icon" 
                             className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                            onClick={() => deleteItem(itemId)}
+                            onClick={() => handleDelete(itemId)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

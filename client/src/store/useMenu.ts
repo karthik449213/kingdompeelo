@@ -2,29 +2,86 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { categories as initialCategories, subCategories as initialSubCategories, items as initialItems, Category, SubCategory, Item } from '@/lib/mockData';
 import { toast } from '@/hooks/use-toast';
+import { api } from '@/lib/api';
 
 interface MenuState {
   categories: Category[];
   subCategories: SubCategory[];
   items: Item[];
-  
+
+  // Fetch menu from backend
+  fetchMenu: () => Promise<void>;
+
   addItem: (item: Omit<Item, 'id'>) => void;
   updateItem: (id: string, item: Partial<Item>) => void;
   deleteItem: (id: string) => void;
-  
+
   addCategory: (category: Omit<Category, 'id'>) => void;
   deleteCategory: (id: string) => void;
-  
+
   // Actions for resetting to default
   resetMenu: () => void;
 }
 
 export const useMenu = create<MenuState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       categories: initialCategories,
       subCategories: initialSubCategories,
       items: initialItems,
+
+      fetchMenu: async () => {
+        try {
+          const menuData = await api.menu.getFull();
+          const categories: Category[] = [];
+          const subCategories: SubCategory[] = [];
+          const items: Item[] = [];
+
+          menuData.forEach((categoryData: any) => {
+            // Map category
+            const category: Category = {
+              id: categoryData._id,
+              title: categoryData.name,
+              image: categoryData.image,
+              slug: categoryData.slug,
+            };
+            categories.push(category);
+
+            // Map subcategories and items
+            if (categoryData.subCategories) {
+              categoryData.subCategories.forEach((subCatData: any) => {
+                const subCategory: SubCategory = {
+                  id: subCatData._id,
+                  title: subCatData.name,
+                  slug: subCatData.slug,
+                  categoryId: categoryData._id,
+                };
+                subCategories.push(subCategory);
+
+                // Map items (dishes)
+                if (subCatData.dishes) {
+                  subCatData.dishes.forEach((dishData: any) => {
+                    const item: Item = {
+                      id: dishData._id,
+                      title: dishData.name,
+                      description: dishData.description,
+                      price: dishData.price,
+                      image: dishData.image,
+                      subCategoryId: subCatData._id,
+                    };
+                    items.push(item);
+                  });
+                }
+              });
+            }
+          });
+
+          set({ categories, subCategories, items });
+        } catch (error) {
+          console.error('Failed to fetch menu:', error);
+          toast({ title: "Error", description: "Failed to load menu data." });
+        }
+      },
 
       addItem: (item) => {
         const newItem = { ...item, id: `i${Date.now()}` };

@@ -54,9 +54,9 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredItems.map((item) => (
-              <ItemCard key={item.id} item={item} />
-            ))}
+            {categories.map((category, idx) => (
+            <CategoryCard key={category.id} category={category} index={idx} />
+          ))}
           </div>
 
           <div className="mt-10 text-center md:hidden">

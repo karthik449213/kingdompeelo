@@ -9,19 +9,52 @@ import { motion } from 'framer-motion';
 
 export default function Menu() {
   const [location] = useLocation();
-  const { categories, subCategories, items } = useMenu();
-  
+  const { categories, subCategories, items, fetchMenu, resetMenu } = useMenu();
+
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeSubCategory, setActiveSubCategory] = useState('all');
-  
+
+  // Fetch menu on component mount
+  useEffect(() => {
+    // Call fetchMenu once on mount. We intentionally don't include
+    // fetchMenu in deps to avoid repeated calls if the function
+    // identity changes from the store implementation.
+    // Any error is handled inside the store.
+    void fetchMenu();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Extract category from URL query params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const catParam = params.get('category');
-    if (catParam) {
-      setActiveCategory(catParam);
+    if (!catParam) return;
+
+    // Try to resolve the category parameter to an actual category id.
+    // The param may be an id or a slug (or even a subcategory id/slug),
+    // so check categories and subcategories and map to the right ids.
+    const byId = categories.find((c) => c.id === catParam);
+    if (byId) {
+      setActiveCategory(byId.id);
+      setActiveSubCategory('all');
+      return;
     }
-  }, [location]);
+
+    const bySlug = categories.find((c) => c.slug === catParam || c.title === catParam);
+    if (bySlug) {
+      setActiveCategory(bySlug.id);
+      setActiveSubCategory('all');
+      return;
+    }
+
+    // Maybe the param refers to a subcategory; if so, set both
+    const subById = subCategories.find((s) => s.id === catParam || s.slug === catParam || s.title === catParam);
+    if (subById) {
+      setActiveCategory(subById.categoryId);
+      setActiveSubCategory(subById.id);
+      return;
+    }
+  }, [location, categories, subCategories]);
 
   const filteredSubCategories = activeCategory === 'all' 
     ? subCategories 
@@ -120,6 +153,19 @@ export default function Menu() {
         ) : (
           <div className="text-center py-20">
             <p className="text-muted-foreground">No items found in this category.</p>
+            <div className="mt-6">
+              <button
+                onClick={() => resetMenu()}
+                className="inline-flex items-center px-4 py-2 rounded-md bg-primary text-primary-foreground"
+              >
+                Load Demo Menu
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground mt-4">
+              If this persists, ensure your backend at `http://localhost:5000` is running and
+              contains categories, subcategories and dishes (the full menu endpoint returns
+              categories with nested subcategories and dishes).
+            </p>
           </div>
         )}
       </div>
