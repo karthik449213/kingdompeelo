@@ -9,8 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Navbar } from '@/components/layout/Navbar';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
-
-const API_BASE = "http://localhost:5000";
+import { API_URL } from '@/lib/utils';
 
 interface MenuItem {
   _id: string;
@@ -40,26 +39,27 @@ export default function AdminMenuManagement() {
   const [preview, setPreview] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState('');
+  const [filterSubcategory, setFilterSubcategory] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
 
   // Load menu from API
   const loadMenu = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/menu/dishes`, {
+      const res = await fetch(`${API_URL}/menu/dishes`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       setMenu(Array.isArray(data) ? data : Array.isArray(data?.dishes) ? data.dishes : []);
       try {
-        const catsRes = await fetch(`${API_BASE}/api/menu/categories`);
+        const catsRes = await fetch(`${API_URL}/menu/categories`);
         const catsData = await catsRes.json();
         setApiCategories(Array.isArray(catsData) ? catsData : []);
       } catch (err) {
-        console.warn('Failed to load categories from API:', err);
+        // Failed to load categories
       }
     } catch (err) {
-      console.log('Error loading menu:', err);
+      // Error loading menu
     }
   };
 
@@ -85,7 +85,6 @@ export default function AdminMenuManagement() {
 
   const handleAdd = async () => {
     if (!form.name || !form.price || !form.category || !form.description) {
-      alert('Please fill all fields');
       return;
     }
 
@@ -98,38 +97,34 @@ export default function AdminMenuManagement() {
       formData.append('category', form.category);
       if (file) formData.append('image', file);
 
-      const res = await fetch(`${API_BASE}/api/menu/dishes`, {
+      const res = await fetch(`${API_URL}/menu/dishes`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
       if (!res.ok) throw new Error('Failed to add dish');
-      alert('Dish Added');
       setForm({ name: '', price: '', category: '', description: '' });
       setFile(null);
       setPreview(null);
       setIsAddDialogOpen(false);
       loadMenu();
     } catch (err: any) {
-      console.log('Error adding dish:', err);
-      alert('Error Adding Dish');
+      // Error adding dish
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure?')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/menu/dishes/${id}`, {
+      const res = await fetch(`${API_URL}/menu/dishes/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to delete');
-      alert('Dish Deleted');
       loadMenu();
     } catch (err: any) {
-      console.log('Error deleting dish:', err);
-      alert('Error deleting dish');
+      // Error deleting dish
     }
   };
 
@@ -138,7 +133,7 @@ export default function AdminMenuManagement() {
     setForm({
       name: item.name || '',
       price: String(item.price ?? ''),
-      category: typeof item.category === 'string' ? item.category : item.category?._id || '',
+      category: item.category || '',
       description: item.description || '',
     });
     setPreview(item.image || null);
@@ -147,7 +142,6 @@ export default function AdminMenuManagement() {
 
   const handleUpdate = async () => {
     if (!editingId || !form.name || !form.price || !form.category || !form.description) {
-      alert('Please fill all fields');
       return;
     }
 
@@ -159,22 +153,20 @@ export default function AdminMenuManagement() {
       if (form.category) formData.append('category', form.category);
       if (file) formData.append('image', file);
 
-      const res = await fetch(`${API_BASE}/api/menu/dishes/${editingId}`, {
+      const res = await fetch(`${API_URL}/menu/dishes/${editingId}`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
       if (!res.ok) throw new Error('Failed to update');
-      alert('Dish updated');
       setEditingId(null);
       setForm({ name: '', price: '', category: '', description: '' });
       setFile(null);
       setPreview(null);
       loadMenu();
     } catch (err: any) {
-      console.log('Error updating:', err);
-      alert('Error updating dish');
+      // Error updating dish
     }
   };
 

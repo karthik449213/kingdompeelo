@@ -1,8 +1,32 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { categories as initialCategories, subCategories as initialSubCategories, items as initialItems, Category, SubCategory, Item } from '@/lib/mockData';
 import { toast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
+
+export interface Category {
+  id: string;
+  title: string;
+  image: string;
+  slug?: string;
+}
+
+export interface SubCategory {
+  id: string;
+  title: string;
+  parentId: string;
+  categoryId?: string;
+  slug?: string;
+}
+
+export interface Item {
+  id: string;
+  title: string;
+  price: number;
+  image: string;
+  description: string;
+  categoryId: string;
+  subCategoryId?: string;
+}
 
 interface MenuState {
   categories: Category[];
@@ -26,9 +50,9 @@ interface MenuState {
 export const useMenu = create<MenuState>()(
   persist(
     (set, get) => ({
-      categories: initialCategories,
-      subCategories: initialSubCategories,
-      items: initialItems,
+      categories: [],
+      subCategories: [],
+      items: [],
 
       fetchMenu: async () => {
         try {
@@ -53,6 +77,7 @@ export const useMenu = create<MenuState>()(
                 const subCategory: SubCategory = {
                   id: subCatData._id,
                   title: subCatData.name,
+                  parentId: categoryData._id,
                   slug: subCatData.slug,
                   categoryId: categoryData._id,
                 };
@@ -67,6 +92,7 @@ export const useMenu = create<MenuState>()(
                       description: dishData.description,
                       price: dishData.price,
                       image: dishData.image,
+                      categoryId: categoryData._id,
                       subCategoryId: subCatData._id,
                     };
                     items.push(item);
@@ -78,7 +104,6 @@ export const useMenu = create<MenuState>()(
 
           set({ categories, subCategories, items });
         } catch (error) {
-          console.error('Failed to fetch menu:', error);
           toast({ title: "Error", description: "Failed to load menu data." });
         }
       },
@@ -117,11 +142,11 @@ export const useMenu = create<MenuState>()(
 
       resetMenu: () => {
         set({
-          categories: initialCategories,
-          subCategories: initialSubCategories,
-          items: initialItems
+          categories: [],
+          subCategories: [],
+          items: []
         });
-        toast({ title: "Reset Complete", description: "Menu restored to default." });
+        toast({ title: "Reset Complete", description: "Menu cleared." });
       }
     }),
     {

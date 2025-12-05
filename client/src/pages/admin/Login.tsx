@@ -4,8 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Navbar } from '@/components/layout/Navbar';
-
-const API_BASE = "http://localhost:5000";
+import { API_URL } from '@/lib/utils';
 
 export default function AdminLogin() {
   const [username, setUsername] = useState('');
@@ -19,7 +18,7 @@ export default function AdminLogin() {
     setError('');
 
     try {
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -31,13 +30,11 @@ export default function AdminLogin() {
         throw new Error(data?.message || 'Login Failed!');
       }
 
-      console.log('LOGIN SUCCESS:', data);
       if (data?.token) {
         localStorage.setItem('token', data.token);
         window.location.href = '/admin/dashboard';
       }
     } catch (err: any) {
-      console.error('LOGIN ERROR:', err);
       setError(err?.message || 'Login Failed!');
     } finally {
       setLoading(false);

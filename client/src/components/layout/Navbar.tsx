@@ -31,24 +31,22 @@ export function Navbar() {
       )}
     >
       <div className="container mx-auto px-4 flex items-center justify-between">
-        <Link href="/">
-          <a className={cn("text-2xl font-serif font-bold tracking-tight", isScrolled || !isHome ? "text-foreground" : "text-white")}>
-            Fresh Squeeze<span className="text-primary">.</span>
-          </a>
+        <Link href="/" className={cn("text-2xl md:text-3xl font-serif font-extrabold tracking-tight lowercase", isScrolled || !isHome ? "text-foreground" : "text-white")}>
+          peel <span className={cn("text-amber-500")}>O</span>{'  '}juice
         </Link>
 
         <div className="hidden md:flex items-center gap-8">
-          <Link href="/menu"><a className={cn("text-sm font-medium hover:text-primary transition-colors", isScrolled || !isHome ? "text-foreground" : "text-white/90")}>Menu</a></Link>
-          <Link href="/about"><a className={cn("text-sm font-medium hover:text-primary transition-colors", isScrolled || !isHome ? "text-foreground" : "text-white/90")}>About</a></Link>
-          <Link href="/reservations"><a className={cn("text-sm font-medium hover:text-primary transition-colors", isScrolled || !isHome ? "text-foreground" : "text-white/90")}>Visit Us</a></Link>
+          <Link href="/menu" className={cn("text-sm font-medium hover:text-primary transition-colors", isScrolled || !isHome ? "text-foreground" : "text-white/90")}>Menu</Link>
+          <Link href="/about" className={cn("text-sm font-medium hover:text-primary transition-colors", isScrolled || !isHome ? "text-foreground" : "text-white/90")}>About</Link>
+          <Link href="/visit-us" className={cn("text-sm font-medium hover:text-primary transition-colors", isScrolled || !isHome ? "text-foreground" : "text-white/90")}>Visit Us</Link>
         </div>
 
         <div className="flex items-center gap-4">
-          <Link href="/admin/dashboard">
-            <Button variant="ghost" size="icon" className={cn("hover:bg-primary/10", isScrolled || !isHome ? "text-foreground" : "text-white hover:text-white")}>
+          <Button variant="ghost" size="icon" className={cn("hover:bg-primary/10", isScrolled || !isHome ? "text-foreground" : "text-white hover:text-white")} asChild>
+            <Link href="/admin/dashboard">
               <User className="h-5 w-5" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           
           <CartDrawer>
             <Button variant="ghost" size="icon" className={cn("relative hover:bg-primary/10", isScrolled || !isHome ? "text-foreground" : "text-white hover:text-white")}>

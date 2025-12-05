@@ -1,6 +1,6 @@
-import { Category } from '@/lib/mockData';
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
+import type { Category } from '@/store/useMenu';
 
 interface CategoryCardProps {
   category: Category;
@@ -21,7 +21,7 @@ export function CategoryCard({ category, index }: CategoryCardProps) {
           className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
           style={{ backgroundImage: `url(${category.image})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
         
         <div className="absolute bottom-0 left-0 w-full p-6 md:p-8 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
           <h3 className="text-2xl md:text-3xl font-serif text-white font-bold mb-2">{category.title}</h3>

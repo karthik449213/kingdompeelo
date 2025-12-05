@@ -7,33 +7,31 @@ export function Footer() {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div className="col-span-1 md:col-span-1">
-            <Link href="/">
-              <a className="text-2xl font-serif font-bold tracking-tight block mb-4">
-                Fresh Squeeze<span className="text-primary">.</span>
-              </a>
+            <Link href="/" className="text-2xl md:text-3xl font-serif font-extrabold tracking-tight block mb-4 lowercase">
+              peel <span className="text-amber-500">O</span>{'  '}juice
             </Link>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Experience the finest organic juices and artisanal desserts, crafted with passion for your health.
+              Fresh-pressed juices and vibrant blends — crafted from local fruit for a brighter you.
             </p>
           </div>
           
           <div>
             <h4 className="font-bold mb-4">Links</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="/"><a className="hover:text-primary transition-colors">Home</a></Link></li>
-              <li><Link href="/menu"><a className="hover:text-primary transition-colors">Menu</a></Link></li>
-              <li><Link href="/reservations"><a className="hover:text-primary transition-colors">Visit Us</a></Link></li>
-              <li><Link href="/about"><a className="hover:text-primary transition-colors">About Us</a></Link></li>
+              <li><Link href="/" className="hover:text-primary transition-colors">Home</Link></li>
+              <li><Link href="/menu" className="hover:text-primary transition-colors">Menu</Link></li>
+              <li><Link href="/visit-us" className="hover:text-primary transition-colors">Visit Us</Link></li>
+              <li><Link href="/about" className="hover:text-primary transition-colors">About Us</Link></li>
             </ul>
           </div>
           
           <div>
             <h4 className="font-bold mb-4">Contact</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>123 Fresh Avenue</li>
-              <li>Juice City, JC 90210</li>
-              <li>+1 (555) 123-4567</li>
-              <li>hello@freshsqueeze.com</li>
+            <li> Royal Arcade 2002, Tikkle Rd, Acharya Ranga Nagar</li>
+            <li>Benz Circle, Vijayawada, Andhra Pradesh 520010</li>
+              <li>+91 998986556</li>
+              <li>hello@peelOjuice.com</li>
             </ul>
           </div>
           
@@ -54,7 +52,7 @@ export function Footer() {
         </div>
         
         <div className="border-t pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Fresh Squeeze Juice Bar. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} peel O  juice. All rights reserved.</p>
           <div className="flex gap-6">
             <a href="#" className="hover:text-primary">Privacy Policy</a>
             <a href="#" className="hover:text-primary">Terms of Service</a>

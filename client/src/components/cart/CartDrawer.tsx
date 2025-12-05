@@ -51,7 +51,7 @@ export function CartDrawer({ children }: { children: React.ReactNode }) {
                     )}
                     <div className="flex-1">
                       <h4 className="font-medium text-sm mb-1">{item.title}</h4>
-                      <p className="text-primary font-semibold text-sm mb-2">${(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="text-primary font-semibold text-sm mb-2">₹{(item.price * item.quantity).toFixed(2)}</p>
                       
                       <div className="flex items-center gap-2">
                         <Button 
@@ -91,20 +91,20 @@ export function CartDrawer({ children }: { children: React.ReactNode }) {
               <div className="space-y-1.5 mb-6">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>${total().toFixed(2)}</span>
+                  <span>₹{total().toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Taxes (5%)</span>
-                  <span>${(total() * 0.05).toFixed(2)}</span>
+                  <span>₹{(total() * 0.05).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-medium text-lg pt-2">
                   <span>Total</span>
-                  <span className="text-primary">${(total() * 1.05).toFixed(2)}</span>
+                  <span className="text-primary">₹{(total() * 1.05).toFixed(2)}</span>
                 </div>
               </div>
               
               <SheetClose asChild>
-                <Link href="/checkout">
+                <Link href="/checkout" asChild>
                   <Button className="w-full h-12 rounded-full text-base shadow-lg shadow-primary/20">
                     Proceed to Checkout
                   </Button>

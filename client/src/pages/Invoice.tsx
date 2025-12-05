@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -81,10 +82,8 @@ export default function Invoice() {
           <ShoppingBag className="h-16 w-16 text-muted-foreground mb-4" />
           <h1 className="text-3xl font-serif font-bold mb-2">Your cart is empty</h1>
           <p className="text-muted-foreground mb-8">Add some delicious items to get started.</p>
-          <Link href="/menu">
-            <a>
-              <Button size="lg" className="rounded-full">View Menu</Button>
-            </a>
+          <Link href="/menu" asChild>
+            <Button size="lg" className="rounded-full">View Menu</Button>
           </Link>
         </div>
         <Footer />
@@ -148,6 +147,9 @@ export default function Invoice() {
                     <DialogContent className="sm:max-w-[425px]">
                       <DialogHeader>
                         <DialogTitle>Customize {item.title}</DialogTitle>
+                        <DialogDescription>
+                          Select options and add special instructions for your {item.title}.
+                        </DialogDescription>
                       </DialogHeader>
                       
                       <div className="space-y-4 mt-4">

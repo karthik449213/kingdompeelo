@@ -12,7 +12,7 @@ export default function Home() {
   // Use store instead of direct mockData import
   const { categories, items } = useMenu();
   
-  const featuredItems = items.filter(i => i.popular).slice(0, 3);
+  const featuredItems = items.slice(0, 3);
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,10 +46,8 @@ export default function Home() {
               <h2 className="text-3xl font-serif font-bold mb-2">Customer Favorites</h2>
               <p className="text-muted-foreground">Our best-selling treats you must try</p>
             </div>
-            <Link href="/menu">
-              <a className="hidden md:flex items-center gap-2 text-primary font-medium hover:gap-3 transition-all">
-                View Full Menu <ArrowRight className="h-4 w-4" />
-              </a>
+            <Link href="/menu" className="hidden md:flex items-center gap-2 text-primary font-medium hover:gap-3 transition-all">
+              View Full Menu <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
@@ -60,10 +58,8 @@ export default function Home() {
           </div>
 
           <div className="mt-10 text-center md:hidden">
-            <Link href="/menu">
-              <a className="inline-flex items-center gap-2 text-primary font-medium">
-                View Full Menu <ArrowRight className="h-4 w-4" />
-              </a>
+            <Link href="/menu" className="inline-flex items-center gap-2 text-primary font-medium">
+              View Full Menu <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>

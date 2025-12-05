@@ -26,13 +26,68 @@ export default function Checkout() {
   const { items, total, clearCart } = useCart();
   const [isSubmitted, setIsSubmitted] = useState(false);
   
-  const { register, handleSubmit, formState: { errors } } = useForm<CheckoutForm>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<CheckoutForm>({
     resolver: zodResolver(checkoutSchema)
   });
 
+  const PHONE = '917075543886';
+
+  // Geolocation / address autofill state
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  const handleUseMyLocation = async () => {
+    setLocationError(null);
+    if (!('geolocation' in navigator)) {
+      setLocationError('Geolocation is not available in your browser.');
+      return;
+    }
+
+    setDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error('Failed to reverse geocode location');
+          const data = await res.json();
+          const addr = data?.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+          setValue('address', addr);
+        } catch (err: any) {
+          setLocationError(err?.message || 'Unable to determine address');
+        } finally {
+          setDetectingLocation(false);
+        }
+      },
+      (err) => {
+        setDetectingLocation(false);
+        if (err.code === 1) setLocationError('Permission denied for location access.');
+        else if (err.code === 2) setLocationError('Position unavailable.');
+        else if (err.code === 3) setLocationError('Location request timed out.');
+        else setLocationError('Unable to get location.');
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  };
+
   const onSubmit = (data: CheckoutForm) => {
-    // Navigate to invoice page for order review
-    setIsSubmitted(true);
+    // Build WhatsApp message and redirect
+    const lines: string[] = [];
+    lines.push('Hello, I want to place this order:');
+    items.forEach((item) => {
+      lines.push(`• ${item.title} (Qty: ${item.quantity})`);
+    });
+    lines.push('');
+    lines.push(`Name: ${data.name}`);
+    lines.push(`Phone: ${data.phone}`);
+    lines.push(`Address: ${data.address}`);
+    if (data.notes) lines.push(`Notes: ${data.notes}`);
+    lines.push('');
+    lines.push(`Total: ₹${(total() * 1.05).toFixed(2)}`);
+
+    const message = encodeURIComponent(lines.join('\n'));
+    window.location.href = `https://wa.me/${PHONE}?text=${message}`;
   };
 
   if (isSubmitted) {
@@ -51,10 +106,8 @@ export default function Checkout() {
           <p className="text-muted-foreground max-w-md mb-8">
             Please review your order details and choose how to complete your purchase.
           </p>
-          <Link href="/invoice">
-            <a>
-              <Button size="lg" className="rounded-full">Review Order</Button>
-            </a>
+          <Link href="/invoice" asChild>
+            <Button size="lg" className="rounded-full">Review Order</Button>
           </Link>
         </div>
         <Footer />
@@ -70,7 +123,7 @@ export default function Checkout() {
           <ShoppingBag className="h-16 w-16 text-muted-foreground mb-4" />
           <h1 className="text-3xl font-serif font-bold mb-2">Your cart is empty</h1>
           <p className="text-muted-foreground mb-8">Add some delicious items to get started.</p>
-          <Link href="/menu">
+          <Link href="/menu" asChild>
             <Button size="lg" className="rounded-full">View Menu</Button>
           </Link>
         </div>
@@ -106,7 +159,7 @@ export default function Checkout() {
                         <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
                       </div>
                     </div>
-                    <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                 ))}
               </div>
@@ -114,15 +167,15 @@ export default function Checkout() {
               <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>${total().toFixed(2)}</span>
+                  <span>₹{total().toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Taxes (5%)</span>
-                  <span>${(total() * 0.05).toFixed(2)}</span>
+                  <span>₹{(total() * 0.05).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-lg font-bold pt-2 border-t mt-2">
                   <span>Total</span>
-                  <span className="text-primary">${(total() * 1.05).toFixed(2)}</span>
+                  <span className="text-primary">₹{(total() * 1.05).toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -156,9 +209,17 @@ export default function Checkout() {
 
                 <div className="space-y-2">
                   <Label htmlFor="address">Delivery Address</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Textarea id="address" className="pl-10 pt-2 min-h-[80px]" placeholder="123 Main St, Apt 4B" {...register("address")} />
+                  <div className="flex items-start gap-3">
+                    <div className="relative flex-1">
+                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Textarea id="address" className="pl-10 pt-2 min-h-20" placeholder="123 Main St, Apt 4B" {...register("address")} />
+                    </div>
+                    <div className="flex flex-col gap-2 w-36">
+                      <Button type="button" onClick={handleUseMyLocation} className="h-10">
+                        {detectingLocation ? 'Detecting…' : 'Use my location'}
+                      </Button>
+                      {locationError && <p className="text-red-600 text-xs">{locationError}</p>}
+                    </div>
                   </div>
                   {errors.address && <p className="text-destructive text-xs">{errors.address.message}</p>}
                 </div>

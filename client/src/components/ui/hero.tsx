@@ -10,14 +10,14 @@ export function Hero() {
         className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105 animate-slow-zoom"
         style={{ backgroundImage: `url(${heroImg})` }}
       />
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px]" />
+      <div className="absolute inset-0 bg-linear-to-b from-black/60 via-black/40 to-black/20 backdrop-blur-sm" />
       
       <div className="relative h-full container mx-auto px-4 flex flex-col justify-center items-center text-center text-white z-10">
         <motion.span 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-primary/90 text-white px-4 py-1 rounded-full font-medium tracking-widest uppercase text-xs mb-6 shadow-lg"
+          className="bg-amber-600/95 text-white px-4 py-1 rounded-full font-medium tracking-widest uppercase text-xs mb-6 shadow-2xl"
         >
           100% Organic & Fresh
         </motion.span>
@@ -26,17 +26,17 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold mb-6 leading-tight drop-shadow-md"
+          className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold mb-6 leading-tight drop-shadow-2xl"
         >
           Squeeze the <br /> 
-          <span className="italic text-primary-foreground text-white">Day</span>
+          <span className="italic text-amber-300">Day</span>
         </motion.h1>
         
         <motion.p 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="text-lg md:text-xl text-white font-medium max-w-2xl mb-10 drop-shadow-sm"
+          className="text-lg md:text-xl text-white font-medium max-w-2xl mb-10 drop-shadow-lg"
         >
           Refresh your body and soul with our cold-pressed juices, creamy smoothies, and artisanal desserts.
         </motion.p>
@@ -47,13 +47,13 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="flex flex-col sm:flex-row gap-4"
         >
-          <Link href="/menu">
-            <Button size="lg" className="bg-white text-black hover:bg-white/90 rounded-full px-8 h-12 text-base shadow-xl">
+          <Link href="/menu" asChild>
+            <Button size="lg" className="bg-amber-500 text-white hover:bg-amber-600 rounded-full px-8 h-12 text-base shadow-2xl">
               Order Now
             </Button>
           </Link>
-          <Link href="/menu?category=c2">
-            <Button size="lg" variant="outline" className="border-white border-2 text-white hover:bg-white/20 rounded-full px-8 h-12 text-base font-bold backdrop-blur-sm shadow-lg">
+          <Link href="/menu?category=c2" asChild>
+            <Button size="lg" variant="outline" className="bg-white/10 border border-white text-white hover:bg-white/20 rounded-full px-8 h-12 text-base font-bold shadow-lg">
               View Ice Creams
             </Button>
           </Link>
@@ -61,7 +61,7 @@ export function Hero() {
       </div>
 
       <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce text-white">
-        <span className="text-sm uppercase tracking-widest text-xs font-bold shadow-black/50 drop-shadow-md">Scroll for Freshness</span>
+        <span className="text-xs uppercase tracking-widest font-bold drop-shadow-md">Scroll for Freshness</span>
       </div>
     </div>
   );

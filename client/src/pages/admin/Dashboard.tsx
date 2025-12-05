@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, LineChart, Line } from 'recharts';
 import { DollarSign, ShoppingBag, Users, Utensils, Plus, Trash2, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { API_BASE_URL, API_URL } from '@/lib/utils';
 
 // Types for fetched data
 type Item = {
@@ -35,8 +36,6 @@ type Category = {
   title?: string;
   image?: string;
 };
-
-const API_BASE = "http://localhost:5000";
 
 // Mock Data for Charts (Static for now)
 const revenueData = [
@@ -92,14 +91,13 @@ export default function Dashboard() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('Not logged in');
       window.location.href = '/admin/login';
       return;
     }
 
     const fetchDashboardData = async () => {
       try {
-        const res = await fetch(`${API_BASE}/dashboard`, {
+        const res = await fetch(`${API_BASE_URL}/dashboard`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -110,8 +108,6 @@ export default function Dashboard() {
         ]);
         setMessage(data.message || 'Dashboard loaded successfully');
       } catch (err) {
-        console.error('Dashboard Error:', err);
-        alert('Unauthorized');
         window.location.href = '/admin/login';
       }
     };
@@ -119,9 +115,8 @@ export default function Dashboard() {
     const fetchDishes = async () => {
       try {
         // Use the API route that returns dishes (menuRoutes exposes /api/menu/dishes)
-        const res = await fetch(`${API_BASE}/api/menu/dishes`);
+        const res = await fetch(`${API_URL}/menu/dishes`);
         const data = await res.json();
-        console.log('Dishes response:', data);
         setItems(Array.isArray(data) ? data.map(dish => ({
           _id: dish._id,
           id: dish._id,
@@ -133,16 +128,16 @@ export default function Dashboard() {
           image: dish.image
         })) : []);
       } catch (err) {
-        console.error('Dishes Error:', err);
+        // Error fetching dishes
       }
     };
 
     const fetchCategories = async () => {
       try {
         // Subcategories are exposed at /api/menu/subcategories
-        const res = await fetch(`${API_BASE}/api/menu/subcategories`);
+        const res = await fetch(`${API_URL}/menu/subcategories`);
         const data = await res.json();
-        console.log('SubCategories response:', data);
+        
         setCategories(Array.isArray(data) ? data.map(sub => ({
           _id: sub._id,
           id: sub._id,
@@ -179,14 +174,14 @@ export default function Dashboard() {
         let res;
         if (editingItem) {
           // Update existing
-          res = await fetch(`${API_BASE}/api/menu/dishes/${editingItem._id}`, {
+          res = await fetch(`${API_URL}/menu/dishes/${editingItem._id}`, {
             method: 'PUT',
             headers: { Authorization: `Bearer ${token}` },
             body: form,
           });
         } else {
           // Create new
-          res = await fetch(`${API_BASE}/api/menu/dishes`, {
+          res = await fetch(`${API_URL}/menu/dishes`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
             body: form,
@@ -237,7 +232,7 @@ export default function Dashboard() {
     if (!confirm('Delete this item permanently?')) return;
 
     try {
-      const res = await fetch(`${API_BASE}/api/menu/dishes/${itemId}`, {
+      const res = await fetch(`${API_URL}/menu/dishes/${itemId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -274,6 +269,9 @@ export default function Dashboard() {
                <DialogContent className="sm:max-w-[425px]">
                  <DialogHeader>
                    <DialogTitle>{editingItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
+                   <DialogDescription>
+                     {editingItem ? 'Update the item details below.' : 'Fill in the details to add a new item to your menu.'}
+                   </DialogDescription>
                  </DialogHeader>
                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
                    <div className="space-y-2">
@@ -333,7 +331,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats[0].value}</div>
-              <p className="text-xs text-muted-foreground text-green-500 font-medium">{stats[0].change} from last month</p>
+              <p className="text-xs text-green-500 font-medium">{stats[0].change} from last month</p>
             </CardContent>
           </Card>
           <Card>
@@ -353,7 +351,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats[1].value}</div>
-              <p className="text-xs text-muted-foreground text-green-500 font-medium">{stats[1].change} since last hour</p>
+              <p className="text-xs text-green-500 font-medium">{stats[1].change} since last hour</p>
             </CardContent>
           </Card>
           <Card>
@@ -363,7 +361,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats[2].value}</div>
-              <p className="text-xs text-muted-foreground text-green-500 font-medium">{stats[2].change} from last month</p>
+              <p className="text-xs text-green-500 font-medium">{stats[2].change} from last month</p>
             </CardContent>
           </Card>
         </div>

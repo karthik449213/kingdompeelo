@@ -1,9 +1,9 @@
-import { Item } from '@/lib/mockData';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/store/useCart';
 import { Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import type { Item } from '@/store/useMenu';
 
 interface ItemCardProps {
   item: Item;
@@ -20,7 +20,7 @@ export function ItemCard({ item }: ItemCardProps) {
       onMouseLeave={() => setIsHovered(false)}
       whileHover={{ y: -5 }}
     >
-      <div className="relative aspect-[4/3] overflow-hidden">
+      <div className="relative aspect-4/3 overflow-hidden">
         <img 
           src={item.image} 
           alt={item.title} 
