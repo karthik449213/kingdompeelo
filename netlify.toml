@@ -1,0 +1,51 @@
+[build]
+base = "/"
+command = "npm run build"
+publish = "dist/public"
+
+[build.environment]
+NODE_VERSION = "18.17.0"
+
+# SPA Routing Fix - Redirect all routes to index.html
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+
+# API proxy - direct requests to backend
+[[redirects]]
+from = "/api/*"
+to = "https://kingdomfoods-api.onrender.com/api/:splat"
+status = 200
+force = false
+
+[dev]
+command = "npm run dev:client"
+port = 5173
+
+# Security Headers
+[[headers]]
+for = "/*"
+[headers.values]
+X-Content-Type-Options = "nosniff"
+X-Frame-Options = "DENY"
+X-XSS-Protection = "1; mode=block"
+Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Cache HTML (no cache)
+[[headers]]
+for = "/index.html"
+[headers.values]
+Cache-Control = "no-cache, no-store, must-revalidate"
+
+# Cache static assets (1 year)
+[[headers]]
+for = "/assets/*"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache images
+[[headers]]
+for = "/images/*"
+[headers.values]
+Cache-Control = "public, max-age=604800"
