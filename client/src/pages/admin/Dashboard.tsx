@@ -121,6 +121,9 @@ export default function Dashboard() {
       return;
     }
 
+    console.log('API Base URL:', API_BASE_URL);
+    console.log('API URL:', API_URL);
+
     const fetchDashboardData = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/dashboard`, {
@@ -134,6 +137,7 @@ export default function Dashboard() {
         ]);
         setMessage(data.message || 'Dashboard loaded successfully');
       } catch (err) {
+        console.error('Dashboard data error:', err);
         window.location.href = '/admin/login';
       }
     };
@@ -142,8 +146,16 @@ export default function Dashboard() {
       try {
         // Use the API route that returns dishes (menuRoutes exposes /api/menu/dishes)
         const res = await fetch(`${API_URL}/menu/dishes`);
+        if (!res.ok) {
+          console.error('Failed to fetch dishes:', res.status);
+          return;
+        }
         const data = await res.json();
-        setItems(Array.isArray(data) ? data.map(dish => ({
+        
+        // Handle paginated response structure
+        const dishesArray = data.dishes || (Array.isArray(data) ? data : []);
+        
+        setItems(Array.isArray(dishesArray) ? dishesArray.map(dish => ({
           _id: dish._id,
           id: dish._id,
           title: dish.name,
@@ -154,7 +166,7 @@ export default function Dashboard() {
           image: dish.image
         })) : []);
       } catch (err) {
-        // Error fetching dishes
+        console.error('Error fetching dishes:', err);
       }
     };
 
@@ -162,6 +174,10 @@ export default function Dashboard() {
       try {
         // Subcategories are exposed at /api/menu/subcategories
         const res = await fetch(`${API_URL}/menu/subcategories`);
+        if (!res.ok) {
+          console.error('Failed to fetch subcategories:', res.status);
+          return;
+        }
         const data = await res.json();
         
         setCategories(Array.isArray(data) ? data.map(sub => ({
@@ -179,6 +195,10 @@ export default function Dashboard() {
     const fetchMainCategories = async () => {
       try {
         const res = await fetch(`${API_URL}/menu/categories`);
+        if (!res.ok) {
+          console.error('Failed to fetch categories:', res.status);
+          return;
+        }
         const data = await res.json();
         
         setMainCategories(Array.isArray(data) ? data.map(cat => ({
