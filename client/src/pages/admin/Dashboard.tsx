@@ -2,7 +2,7 @@ import { Navbar } from '@/components/layout/Navbar';
 // import { stats } from '@/lib/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, LineChart, Line } from 'recharts';
-import { DollarSign, ShoppingBag, Users, Utensils, Plus, Trash2, Edit2 } from 'lucide-react';
+import { DollarSign, ShoppingBag, Users, Utensils, Plus, Trash2, Edit2, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMenu } from '@/store/useMenu';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,7 +38,7 @@ type Category = {
 };
 
 // Mock Data for Charts (Static for now)
-const revenueData = [
+let revenueData = [
   { name: 'Mon', total: 1200 },
   { name: 'Tue', total: 900 },
   { name: 'Wed', total: 1600 },
@@ -48,7 +48,7 @@ const revenueData = [
   { name: 'Sun', total: 2800 },
 ];
 
-const orderData = [
+let orderData = [
   { time: '10am', orders: 4 },
   { time: '12pm', orders: 12 },
   { time: '2pm', orders: 8 },
@@ -68,23 +68,49 @@ const itemSchema = z.object({
   image: z.any().optional(),
 });
 
+const categorySchema = z.object({
+  name: z.string().min(2, "Category name is required"),
+  image: z.any().optional(),
+});
+
+const subCategorySchema = z.object({
+  name: z.string().min(2, "Subcategory name is required"),
+  categoryId: z.string().min(1, "Category is required"),
+  image: z.any().optional(),
+});
+
 type ItemFormValues = z.infer<typeof itemSchema>;
+type CategoryFormValues = z.infer<typeof categorySchema>;
+type SubCategoryFormValues = z.infer<typeof subCategorySchema>;
 
 export default function Dashboard() {
   const { addItem, deleteItem, resetMenu } = useMenu();
   const [items, setItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [mainCategories, setMainCategories] = useState<Category[]>([]);
   const [stats, setStats] = useState([
     { value: 0, change: '' },
     { value: 0, change: '' },
     { value: 0, change: '' }
   ]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
+  const [isAddSubCategoryDialogOpen, setIsAddSubCategoryDialogOpen] = useState(false);
   const [message, setMessage] = useState('');
+  const [chartRevenue, setChartRevenue] = useState(revenueData);
+  const [chartOrders, setChartOrders] = useState(orderData);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ItemFormValues>({
     resolver: zodResolver(itemSchema)
   });
+  const { register: registerCategory, handleSubmit: handleSubmitCategory, reset: resetCategory, formState: { errors: categoryErrors } } = useForm<CategoryFormValues>({
+    resolver: zodResolver(categorySchema)
+  });
+  const { register: registerSubCategory, handleSubmit: handleSubmitSubCategory, reset: resetSubCategory, setValue: setValueSubCategory, formState: { errors: subCategoryErrors } } = useForm<SubCategoryFormValues>({
+    resolver: zodResolver(subCategorySchema)
+  });
+  
   const [editingItem, setEditingItem] = useState<Item | null>(null);
 
   // Authentication check - extracted from kingdomfrontend Dashboard
@@ -150,10 +176,62 @@ export default function Dashboard() {
       }
     };
 
+    const fetchMainCategories = async () => {
+      try {
+        const res = await fetch(`${API_URL}/menu/categories`);
+        const data = await res.json();
+        
+        setMainCategories(Array.isArray(data) ? data.map(cat => ({
+          _id: cat._id,
+          id: cat._id,
+          name: cat.name,
+          title: cat.name,
+          image: cat.image
+        })) : []);
+      } catch (err) {
+        console.error('Categories Error:', err);
+      }
+    };
+
+    // Fetch initial data
     fetchDashboardData();
     fetchDishes();
     fetchCategories();
+    fetchMainCategories();
+
+    // Real-time polling for charts (every 30 seconds)
+    pollingIntervalRef.current = setInterval(() => {
+      updateChartData();
+    }, 30000);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
   }, []);
+
+  // Function to update chart data with simulated real-time data
+  const updateChartData = () => {
+    // Simulate revenue data with slight variations
+    setChartRevenue(prev => prev.map(item => ({
+      ...item,
+      total: Math.max(500, item.total + Math.floor((Math.random() - 0.5) * 1000))
+    })));
+
+    // Simulate order data with slight variations
+    setChartOrders(prev => prev.map(item => ({
+      ...item,
+      orders: Math.max(1, item.orders + Math.floor((Math.random() - 0.5) * 10))
+    })));
+  };
+
+  const handleLogout = () => {
+    if (confirm('Are you sure you want to logout?')) {
+      localStorage.removeItem('token');
+      window.location.href = '/admin/login';
+    }
+  };
 
   const onSubmit = (data: ItemFormValues) => {
     (async () => {
@@ -249,6 +327,99 @@ export default function Dashboard() {
     }
   };
 
+  // Add Category Handler
+  const onSubmitCategory = (data: CategoryFormValues) => {
+    (async () => {
+      const token = localStorage.getItem('token');
+      try {
+        const form = new FormData();
+        form.append('name', data.name);
+
+        const fileList = (data as any).image as FileList | undefined;
+        if (fileList && fileList.length > 0) {
+          form.append('image', fileList[0]);
+        }
+
+        const res = await fetch(`${API_URL}/menu/categories`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error('Save category failed', err);
+          alert('Failed to save category');
+          return;
+        }
+
+        const saved = await res.json();
+        const newCategory: Category = {
+          _id: saved._id || saved.id,
+          id: saved._id || saved.id,
+          name: saved.name,
+          title: saved.name,
+          image: saved.image,
+        };
+
+        setMainCategories(prev => [newCategory, ...prev]);
+        setIsAddCategoryDialogOpen(false);
+        resetCategory();
+        alert('Category added successfully!');
+      } catch (e) {
+        console.error('Submit Error:', e);
+        alert('Failed to save category');
+      }
+    })();
+  };
+
+  // Add SubCategory Handler
+  const onSubmitSubCategory = (data: SubCategoryFormValues) => {
+    (async () => {
+      const token = localStorage.getItem('token');
+      try {
+        const form = new FormData();
+        form.append('name', data.name);
+        form.append('category', data.categoryId);
+
+        const fileList = (data as any).image as FileList | undefined;
+        if (fileList && fileList.length > 0) {
+          form.append('image', fileList[0]);
+        }
+
+        const res = await fetch(`${API_URL}/menu/subcategories`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error('Save subcategory failed', err);
+          alert('Failed to save subcategory');
+          return;
+        }
+
+        const saved = await res.json();
+        const newSubCategory: Category = {
+          _id: saved._id || saved.id,
+          id: saved._id || saved.id,
+          name: saved.name,
+          title: saved.name,
+          image: saved.image,
+        };
+
+        setCategories(prev => [newSubCategory, ...prev]);
+        setIsAddSubCategoryDialogOpen(false);
+        resetSubCategory();
+        alert('Subcategory added successfully!');
+      } catch (e) {
+        console.error('Submit Error:', e);
+        alert('Failed to save subcategory');
+      }
+    })();
+  };
+
   return (
     <div className="min-h-screen bg-background pt-24">
       <Navbar />
@@ -259,9 +430,89 @@ export default function Dashboard() {
             <h1 className="text-3xl font-serif font-bold">Admin Dashboard</h1>
             <p className="text-muted-foreground">Manage your menu and view performance.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
              <Button variant="outline" onClick={() => resetMenu()}>Reset to Default</Button>
              
+             {/* Add Category Dialog */}
+             <Dialog open={isAddCategoryDialogOpen} onOpenChange={setIsAddCategoryDialogOpen}>
+               <DialogTrigger asChild>
+                 <Button variant="outline" className="gap-2"><Plus className="h-4 w-4" /> Add Category</Button>
+               </DialogTrigger>
+               <DialogContent className="sm:max-w-[425px]">
+                 <DialogHeader>
+                   <DialogTitle>Add New Category</DialogTitle>
+                   <DialogDescription>
+                     Fill in the details to add a new category.
+                   </DialogDescription>
+                 </DialogHeader>
+                 <form onSubmit={handleSubmitCategory(onSubmitCategory)} className="space-y-4 mt-4">
+                   <div className="space-y-2">
+                     <Label htmlFor="cat-name">Category Name</Label>
+                     <Input id="cat-name" {...registerCategory("name")} placeholder="e.g. Beverages" />
+                     {categoryErrors.name && <p className="text-destructive text-xs">{categoryErrors.name.message}</p>}
+                   </div>
+
+                   <div className="space-y-2">
+                     <Label htmlFor="cat-image">Image</Label>
+                     <input id="cat-image" type="file" accept="image/*" {...registerCategory('image')} />
+                     <p className="text-xs text-muted-foreground">Upload an image for the category (optional).</p>
+                   </div>
+
+                   <DialogFooter>
+                     <Button type="submit">Save Category</Button>
+                   </DialogFooter>
+                 </form>
+               </DialogContent>
+             </Dialog>
+
+             {/* Add SubCategory Dialog */}
+             <Dialog open={isAddSubCategoryDialogOpen} onOpenChange={setIsAddSubCategoryDialogOpen}>
+               <DialogTrigger asChild>
+                 <Button variant="outline" className="gap-2"><Plus className="h-4 w-4" /> Add SubCategory</Button>
+               </DialogTrigger>
+               <DialogContent className="sm:max-w-[425px]">
+                 <DialogHeader>
+                   <DialogTitle>Add New SubCategory</DialogTitle>
+                   <DialogDescription>
+                     Fill in the details to add a new subcategory.
+                   </DialogDescription>
+                 </DialogHeader>
+                 <form onSubmit={handleSubmitSubCategory(onSubmitSubCategory)} className="space-y-4 mt-4">
+                   <div className="space-y-2">
+                     <Label htmlFor="subcat-name">SubCategory Name</Label>
+                     <Input id="subcat-name" {...registerSubCategory("name")} placeholder="e.g. Cold Drinks" />
+                     {subCategoryErrors.name && <p className="text-destructive text-xs">{subCategoryErrors.name.message}</p>}
+                   </div>
+
+                   <div className="space-y-2">
+                     <Label htmlFor="subcat-category">Category</Label>
+                     <Select onValueChange={(val) => setValueSubCategory("categoryId", val)}>
+                       <SelectTrigger>
+                         <SelectValue placeholder="Select category" />
+                       </SelectTrigger>
+                       <SelectContent>
+                         {mainCategories.map(cat => (
+                           <SelectItem key={cat._id || cat.id} value={cat._id || cat.id || ''}>{cat.name || cat.title}</SelectItem>
+                         ))}
+                       </SelectContent>
+                     </Select>
+                     {subCategoryErrors.categoryId && <p className="text-destructive text-xs">{subCategoryErrors.categoryId.message}</p>}
+                   </div>
+
+                   <div className="space-y-2">
+                     <Label htmlFor="subcat-image">Image</Label>
+                     <input id="subcat-image" type="file" accept="image/*" {...registerSubCategory('image')} />
+                     <p className="text-xs text-muted-foreground">Upload an image for the subcategory (optional).</p>
+                   </div>
+
+                   <DialogFooter>
+                     <Button type="submit">Save SubCategory</Button>
+                   </DialogFooter>
+                 </form>
+               </DialogContent>
+             </Dialog>
+
+             {/* Add Item Dialog */}
              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                <DialogTrigger asChild>
                  <Button className="gap-2" onClick={() => { setEditingItem(null); reset(); }}><Plus className="h-4 w-4" /> Add Item</Button>
@@ -319,6 +570,8 @@ export default function Dashboard() {
                  </form>
                </DialogContent>
              </Dialog>
+
+             <Button variant="destructive" className="gap-2" onClick={handleLogout}><LogOut className="h-4 w-4" /> Logout</Button>
           </div>
         </div>
 
@@ -370,12 +623,12 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-6 mb-8">
           <Card className="col-span-1 lg:col-span-4">
             <CardHeader>
-              <CardTitle>Revenue Overview</CardTitle>
+              <CardTitle>Revenue Overview (Real-time)</CardTitle>
             </CardHeader>
             <CardContent className="pl-2">
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={revenueData}>
+                  <BarChart data={chartRevenue}>
                     <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
                     <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }} />
@@ -388,12 +641,12 @@ export default function Dashboard() {
           
           <Card className="col-span-1 lg:col-span-3">
              <CardHeader>
-              <CardTitle>Orders Timeline</CardTitle>
+              <CardTitle>Orders Timeline (Real-time)</CardTitle>
             </CardHeader>
             <CardContent className="pl-2">
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={orderData}>
+                  <LineChart data={chartOrders}>
                     <XAxis dataKey="time" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                     <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }} />
