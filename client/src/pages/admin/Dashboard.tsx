@@ -121,9 +121,6 @@ export default function Dashboard() {
       return;
     }
 
-    console.log('API Base URL:', API_BASE_URL);
-    console.log('API URL:', API_URL);
-
     const fetchDashboardData = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/dashboard`, {
