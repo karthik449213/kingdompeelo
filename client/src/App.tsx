@@ -17,6 +17,8 @@ const VisitUs = lazy(() => import("@/pages/VisitUs"));
 const Dashboard = lazy(() => import("@/pages/admin/Dashboard"));
 const AdminLogin = lazy(() => import("@/pages/admin/Login"));
 const AdminMenuManagement = lazy(() => import("@/pages/admin/MenuManagement"));
+const AdminCategoryManagement = lazy(() => import("@/pages/admin/CategoryManagement"));
+const AdminTestimonialManagement = lazy(() => import("@/pages/admin/TestimonialManagement"));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -84,6 +86,20 @@ function Router() {
         {() => (
           <Suspense fallback={<LoadingFallback />}>
             <AdminMenuManagement />
+          </Suspense>
+        )}
+      </Route>
+      <Route path="/admin/categories">
+        {() => (
+          <Suspense fallback={<LoadingFallback />}>
+            <AdminCategoryManagement />
+          </Suspense>
+        )}
+      </Route>
+      <Route path="/admin/testimonials">
+        {() => (
+          <Suspense fallback={<LoadingFallback />}>
+            <AdminTestimonialManagement />
           </Suspense>
         )}
       </Route>

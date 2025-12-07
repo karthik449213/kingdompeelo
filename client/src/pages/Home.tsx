@@ -1,18 +1,16 @@
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CategoryCard } from '@/components/menu/CategoryCard';
-import { ItemCard } from '@/components/menu/ItemCard';
 import { useMenu } from '@/store/useMenu';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'wouter';
 import { Hero } from '@/components/ui/hero';
+import { TestimonialSection } from '@/components/testimonials/TestimonialSection';
 
 export default function Home() {
   // Use store instead of direct mockData import
-  const { categories, items } = useMenu();
-  
-  const featuredItems = items.slice(0, 3);
+  const { categories } = useMenu();
 
   return (
     <div className="min-h-screen bg-background">
@@ -26,7 +24,7 @@ export default function Home() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <h2 className="text-4xl font-serif font-bold mb-4">Fresh & Organic Menu</h2>
+          <h2 className="text-4xl font-serif font-bold mb-4">Fresh & Organic Juices</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             From detoxifying green juices to indulgent fruit tarts, everything is 100% natural and sugar-free options available.
           </p>
@@ -64,6 +62,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <TestimonialSection />
 
       <Footer />
     </div>

@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Navbar } from '@/components/layout/Navbar';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
 import { API_URL } from '@/lib/utils';
@@ -14,34 +15,56 @@ import { API_URL } from '@/lib/utils';
 interface MenuItem {
   _id: string;
   name: string;
-  category: string;
+  category?: string | { _id: string; name: string };
+  subCategory?: string | { _id: string; name: string };
   price: number;
   description: string;
   image?: string;
-  subcategory?: {
-    _id: string;
-    name: string;
-    category?: { _id: string; name: string } | string;
-  } | string;
+}
+
+interface Category {
+  _id: string;
+  name: string;
+}
+
+interface SubCategory {
+  _id: string;
+  name: string;
+  category: string;
 }
 
 export default function AdminMenuManagement() {
   const { items } = useMenu();
   const [menu, setMenu] = useState<MenuItem[]>([]);
-  const [apiCategories, setApiCategories] = useState<{ _id: string; name: string; image?: string }[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [form, setForm] = useState({
     name: '',
     price: '',
     category: '',
+    subCategory: '',
     description: '',
   });
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState('');
-  const [filterSubcategory, setFilterSubcategory] = useState('');
+  const [filterSubCategory, setFilterSubCategory] = useState('');
+  const [showOnlyStandalone, setShowOnlyStandalone] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+
+  // Load data on mount
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/admin/login';
+      return;
+    }
+    loadMenu();
+    loadCategories();
+    loadSubCategories();
+  }, []);
 
   // Load menu from API
   const loadMenu = async () => {
@@ -51,26 +74,32 @@ export default function AdminMenuManagement() {
       });
       const data = await res.json();
       setMenu(Array.isArray(data) ? data : Array.isArray(data?.dishes) ? data.dishes : []);
-      try {
-        const catsRes = await fetch(`${API_URL}/menu/categories`);
-        const catsData = await catsRes.json();
-        setApiCategories(Array.isArray(catsData) ? catsData : []);
-      } catch (err) {
-        // Failed to load categories
-      }
     } catch (err) {
-      // Error loading menu
+      console.error('Failed to load menu:', err);
     }
   };
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      window.location.href = '/admin/login';
-      return;
+  // Load categories
+  const loadCategories = async () => {
+    try {
+      const res = await fetch(`${API_URL}/menu/categories`);
+      const data = await res.json();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to load categories:', err);
     }
-    loadMenu();
-  }, []);
+  };
+
+  // Load subcategories
+  const loadSubCategories = async () => {
+    try {
+      const res = await fetch(`${API_URL}/menu/subcategories`);
+      const data = await res.json();
+      setSubCategories(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to load subcategories:', err);
+    }
+  };
 
   const handleChange = (e: any) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -93,8 +122,8 @@ export default function AdminMenuManagement() {
       formData.append('name', form.name);
       formData.append('price', form.price);
       formData.append('description', form.description);
-      // send category id (backend expects `category`)
       formData.append('category', form.category);
+      if (form.subCategory) formData.append('subCategory', form.subCategory);
       if (file) formData.append('image', file);
 
       const res = await fetch(`${API_URL}/menu/dishes`, {
@@ -104,13 +133,13 @@ export default function AdminMenuManagement() {
       });
 
       if (!res.ok) throw new Error('Failed to add dish');
-      setForm({ name: '', price: '', category: '', description: '' });
+      setForm({ name: '', price: '', category: '', subCategory: '', description: '' });
       setFile(null);
       setPreview(null);
       setIsAddDialogOpen(false);
       loadMenu();
     } catch (err: any) {
-      // Error adding dish
+      console.error('Error adding dish:', err);
     }
   };
 
@@ -124,7 +153,7 @@ export default function AdminMenuManagement() {
       if (!res.ok) throw new Error('Failed to delete');
       loadMenu();
     } catch (err: any) {
-      // Error deleting dish
+      console.error('Error deleting dish:', err);
     }
   };
 
@@ -133,7 +162,8 @@ export default function AdminMenuManagement() {
     setForm({
       name: item.name || '',
       price: String(item.price ?? ''),
-      category: item.category || '',
+      category: typeof item.category === 'string' ? item.category : item.category?._id || '',
+      subCategory: typeof item.subCategory === 'string' ? item.subCategory : item.subCategory?._id || '',
       description: item.description || '',
     });
     setPreview(item.image || null);
@@ -150,7 +180,8 @@ export default function AdminMenuManagement() {
       formData.append('name', form.name);
       formData.append('price', form.price);
       formData.append('description', form.description);
-      if (form.category) formData.append('category', form.category);
+      formData.append('category', form.category);
+      if (form.subCategory) formData.append('subCategory', form.subCategory);
       if (file) formData.append('image', file);
 
       const res = await fetch(`${API_URL}/menu/dishes/${editingId}`, {
@@ -161,29 +192,49 @@ export default function AdminMenuManagement() {
 
       if (!res.ok) throw new Error('Failed to update');
       setEditingId(null);
-      setForm({ name: '', price: '', category: '', description: '' });
+      setForm({ name: '', price: '', category: '', subCategory: '', description: '' });
       setFile(null);
       setPreview(null);
       loadMenu();
     } catch (err: any) {
-      // Error updating dish
+      console.error('Error updating dish:', err);
     }
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setForm({ name: '', price: '', category: '', description: '' });
+    setForm({ name: '', price: '', category: '', subCategory: '', description: '' });
     setFile(null);
     setPreview(null);
   };
 
+  // Get filtered subcategories based on selected category
+  const getAvailableSubCategories = () => {
+    if (!form.category) return [];
+    return subCategories.filter((sc) => sc.category === form.category);
+  };
+
   const getFilteredMenu = () => {
-    if (!filterCategory) return menu;
-    return menu.filter((item) => {
-      const cat = item.category as any;
-      const catId = typeof cat === 'string' ? cat : cat?._id || '';
-      return catId === filterCategory;
-    });
+    let filtered = menu;
+
+    if (showOnlyStandalone) {
+      filtered = filtered.filter((item) => !item.subCategory);
+    } else {
+      if (filterCategory) {
+        filtered = filtered.filter((item) => {
+          const catId = typeof item.category === 'string' ? item.category : item.category?._id;
+          return catId === filterCategory;
+        });
+      }
+      if (filterSubCategory) {
+        filtered = filtered.filter((item) => {
+          const subCatId = typeof item.subCategory === 'string' ? item.subCategory : item.subCategory?._id;
+          return subCatId === filterSubCategory;
+        });
+      }
+    }
+
+    return filtered;
   };
 
   return (
@@ -193,12 +244,18 @@ export default function AdminMenuManagement() {
       <div className="container mx-auto px-4 py-10">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-serif font-bold">Menu Management</h1>
-            <p className="text-muted-foreground">Add, edit, and delete menu items</p>
+            <h1 className="text-3xl font-serif font-bold">Dish Management</h1>
+            <p className="text-muted-foreground">Add, edit, and delete dishes</p>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button
+                className="gap-2"
+                onClick={() => {
+                  cancelEdit();
+                  setIsAddDialogOpen(true);
+                }}
+              >
                 <Plus className="h-4 w-4" /> Add Dish
               </Button>
             </DialogTrigger>
@@ -231,20 +288,56 @@ export default function AdminMenuManagement() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select value={form.category} onValueChange={(val) => setForm({ ...form, category: val })}>
+                  <Label htmlFor="category">Category *</Label>
+                  <Select value={form.category} onValueChange={(val) => {
+                    setForm({ ...form, category: val, subCategory: '' });
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Select category</SelectItem>
-                      {apiCategories.map((c) => (
+                      {categories.map((c) => (
                         <SelectItem key={c._id} value={c._id}>
                           {c.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="subCategory">SubCategory (Optional)</Label>
+                  <div className="flex gap-2 items-center">
+                    <Select
+                      value={form.subCategory}
+                      onValueChange={(val) => setForm({ ...form, subCategory: val })}
+                      disabled={!form.category}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select subcategory" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getAvailableSubCategories().map((sc) => (
+                          <SelectItem key={sc._id} value={sc._id}>
+                            {sc.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {form.subCategory && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setForm({ ...form, subCategory: '' })}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Leave empty for category-only dish
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -289,34 +382,111 @@ export default function AdminMenuManagement() {
         {/* Filter Section */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Filter Menu Items</CardTitle>
+            <CardTitle>Filter Dishes</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="filterCategory">Filter by Category</Label>
-                <Select value={filterCategory} onValueChange={(val) => setFilterCategory(val)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All categories</SelectItem>
-                    {apiCategories.map((c) => (
-                      <SelectItem key={c._id} value={c._id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="flex items-center gap-4 mb-4">
+              <input
+                type="checkbox"
+                id="showStandalone"
+                checked={showOnlyStandalone}
+                onChange={(e) => {
+                  setShowOnlyStandalone(e.target.checked);
+                  setFilterCategory('');
+                  setFilterSubCategory('');
+                }}
+                className="w-4 h-4"
+              />
+              <Label htmlFor="showStandalone" className="cursor-pointer">
+                Show only dishes with Category only (no SubCategory)
+              </Label>
             </div>
+
+            {!showOnlyStandalone && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="filterCategory">Filter by Category</Label>
+                  <div className="flex gap-2">
+                    <Select value={filterCategory} onValueChange={(val) => {
+                      setFilterCategory(val);
+                      setFilterSubCategory('');
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All categories" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((c) => (
+                          <SelectItem key={c._id} value={c._id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {filterCategory && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setFilterCategory('');
+                          setFilterSubCategory('');
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="filterSubCategory">Filter by SubCategory</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={filterSubCategory}
+                      onValueChange={setFilterSubCategory}
+                      disabled={!filterCategory}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="All subcategories" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subCategories
+                          .filter((sc) => sc.category === filterCategory)
+                          .map((sc) => (
+                            <SelectItem key={sc._id} value={sc._id}>
+                              {sc.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    {filterSubCategory && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFilterSubCategory('')}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Menu Items Display */}
         <Card>
           <CardHeader>
-            <CardTitle>Menu Items {filterCategory || filterSubcategory ? '(Filtered)' : ''}</CardTitle>
+            <CardTitle>
+              Dishes
+              {showOnlyStandalone
+                ? ' (Category Only)'
+                : filterCategory || filterSubCategory
+                ? ' (Filtered)'
+                : ''}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {getFilteredMenu().length === 0 ? (
@@ -340,13 +510,36 @@ export default function AdminMenuManagement() {
                         <h3 className="font-bold">{item.name}</h3>
                         <p className="text-sm text-muted-foreground">₹{item.price}</p>
                         <p className="text-xs text-muted-foreground">{item.description}</p>
+                        <div className="text-xs mt-2 space-y-1">
+                          <p>
+                            Category:{' '}
+                            <span className="font-semibold">
+                              {typeof item.category === 'string'
+                                ? item.category
+                                : item.category?.name}
+                            </span>
+                          </p>
+                          {item.subCategory && (
+                            <p>
+                              SubCategory:{' '}
+                              <span className="font-semibold">
+                                {typeof item.subCategory === 'string'
+                                  ? item.subCategory
+                                  : item.subCategory?.name}
+                              </span>
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => startEdit(item)}
+                        onClick={() => {
+                          startEdit(item);
+                          setIsAddDialogOpen(true);
+                        }}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>

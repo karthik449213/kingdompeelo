@@ -30,8 +30,8 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-muted-foreground">
             <li> Royal Arcade 2002, Tikkle Rd, Acharya Ranga Nagar</li>
             <li>Benz Circle, Vijayawada, Andhra Pradesh 520010</li>
-              <li>+91 998986556</li>
-              <li>hello@peelOjuice.com</li>
+              <li>+91-9347845679</li>
+              <li>peelojuice@gmail.com</li>
             </ul>
           </div>
           

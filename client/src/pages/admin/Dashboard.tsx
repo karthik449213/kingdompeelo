@@ -84,7 +84,7 @@ type CategoryFormValues = z.infer<typeof categorySchema>;
 type SubCategoryFormValues = z.infer<typeof subCategorySchema>;
 
 export default function Dashboard() {
-  const { addItem, deleteItem, resetMenu } = useMenu();
+  
   const [items, setItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [mainCategories, setMainCategories] = useState<Category[]>([]);
@@ -451,7 +451,10 @@ export default function Dashboard() {
             <p className="text-muted-foreground">Manage your menu and view performance.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
-             <Button variant="outline" onClick={() => resetMenu()}>Reset to Default</Button>
+             <Button variant="outline" onClick={() => window.location.href = '/admin/menu'}>Menu Management</Button>
+             <Button variant="outline" onClick={() => window.location.href = '/admin/categories'}>Category Management</Button>
+             <Button variant="outline" onClick={() => window.location.href = '/admin/testimonials'}>Testimonial Management</Button>
+
              
              {/* Add Category Dialog */}
              <Dialog open={isAddCategoryDialogOpen} onOpenChange={setIsAddCategoryDialogOpen}>

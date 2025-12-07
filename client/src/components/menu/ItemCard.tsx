@@ -45,7 +45,7 @@ export function ItemCard({ item }: ItemCardProps) {
       <div className="p-5">
         <div className="flex justify-between items-start mb-2">
           <h3 className="font-serif text-lg font-bold text-foreground leading-tight">{item.title}</h3>
-          <span className="font-semibold text-primary">${item.price.toFixed(2)}</span>
+          <span className="font-semibold text-primary">₹{item.price.toFixed(2)}</span>
         </div>
         <p className="text-muted-foreground text-sm line-clamp-2 mb-4">{item.description}</p>
       </div>

@@ -54,7 +54,7 @@ export function Hero() {
           </Link>
           <Link href="/menu?category=c2" asChild>
             <Button size="lg" variant="outline" className="bg-white/10 border border-white text-white hover:bg-white/20 rounded-full px-8 h-12 text-base font-bold shadow-lg">
-              View Ice Creams
+              View Menu
             </Button>
           </Link>
         </motion.div>
