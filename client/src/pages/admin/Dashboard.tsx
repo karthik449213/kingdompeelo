@@ -254,17 +254,25 @@ export default function Dashboard() {
     (async () => {
       const token = localStorage.getItem('token');
       try {
+        // Validate subcategory is provided
+        if (!data.subCategoryId) {
+          alert('Subcategory is required');
+          return;
+        }
+
+        // Validate image is provided
+        const fileList = (data as any).image as FileList | undefined;
+        if (!fileList || fileList.length === 0) {
+          alert('Please upload an image for the dish');
+          return;
+        }
+
         const form = new FormData();
         form.append('name', data.title);
         form.append('price', String(data.price));
         form.append('description', data.description);
         form.append('subCategory', data.subCategoryId);
-
-        // data.image may be a FileList
-        const fileList = (data as any).image as FileList | undefined;
-        if (fileList && fileList.length > 0) {
-          form.append('image', fileList[0]);
-        }
+        form.append('image', fileList[0]);
 
         let res;
         if (editingItem) {
@@ -345,96 +353,125 @@ export default function Dashboard() {
   };
 
   // Add Category Handler
-  const onSubmitCategory = (data: CategoryFormValues) => {
-    (async () => {
-      const token = localStorage.getItem('token');
-      try {
-        const form = new FormData();
-        form.append('name', data.name);
+  const onSubmitCategory = async (data: CategoryFormValues) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Not authenticated');
+      return;
+    }
+    
+    // Validate image
+    const fileList = (data as any).image as FileList | undefined;
+    if (!fileList || fileList.length === 0) {
+      alert('Please upload an image for the category');
+      return;
+    }
 
-        const fileList = (data as any).image as FileList | undefined;
-        if (fileList && fileList.length > 0) {
-          form.append('image', fileList[0]);
-        }
+    try {
+      const form = new FormData();
+      form.append('name', data.name);
+      form.append('image', fileList[0]);
 
-        const res = await fetch(`${API_URL}/menu/categories`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: form,
-        });
+      console.log('Submitting category with data:', { name: data.name, hasImage: true });
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          console.error('Save category failed', err);
-          alert('Failed to save category');
-          return;
-        }
+      const res = await fetch(`${API_URL}/menu/categories`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
 
-        const saved = await res.json();
-        const newCategory: Category = {
-          _id: saved._id || saved.id,
-          id: saved._id || saved.id,
-          name: saved.name,
-          title: saved.name,
-          image: saved.image,
-        };
+      console.log('Category submission response status:', res.status);
 
-        setMainCategories(prev => [newCategory, ...prev]);
-        setIsAddCategoryDialogOpen(false);
-        resetCategory();
-        alert('Category added successfully!');
-      } catch (e) {
-        console.error('Submit Error:', e);
-        alert('Failed to save category');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: 'No response body' }));
+        console.error('Save category failed:', err);
+        alert('Failed to save category: ' + (err.message || 'Unknown error'));
+        return;
       }
-    })();
+
+      const saved = await res.json();
+      console.log('Category saved successfully:', saved);
+      
+      const newCategory: Category = {
+        _id: saved._id || saved.id,
+        id: saved._id || saved.id,
+        name: saved.name,
+        title: saved.name,
+        image: saved.image,
+      };
+
+      setMainCategories(prev => [newCategory, ...prev]);
+      setIsAddCategoryDialogOpen(false);
+      resetCategory();
+      alert('Category added successfully!');
+    } catch (e) {
+      console.error('Submit Error:', e);
+      alert('Failed to save category: ' + (e instanceof Error ? e.message : 'Unknown error'));
+    }
   };
 
   // Add SubCategory Handler
-  const onSubmitSubCategory = (data: SubCategoryFormValues) => {
-    (async () => {
-      const token = localStorage.getItem('token');
-      try {
-        const form = new FormData();
-        form.append('name', data.name);
-        form.append('category', data.categoryId);
+  const onSubmitSubCategory = async (data: SubCategoryFormValues) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Not authenticated');
+      return;
+    }
+    
+    // Validate image
+    const fileList = (data as any).image as FileList | undefined;
+    if (!fileList || fileList.length === 0) {
+      alert('Please upload an image for the subcategory');
+      return;
+    }
 
-        const fileList = (data as any).image as FileList | undefined;
-        if (fileList && fileList.length > 0) {
-          form.append('image', fileList[0]);
-        }
+    if (!data.categoryId) {
+      alert('Please select a category');
+      return;
+    }
 
-        const res = await fetch(`${API_URL}/menu/subcategories`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: form,
-        });
+    try {
+      const form = new FormData();
+      form.append('name', data.name);
+      form.append('category', data.categoryId);
+      form.append('image', fileList[0]);
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          console.error('Save subcategory failed', err);
-          alert('Failed to save subcategory');
-          return;
-        }
+      console.log('Submitting subcategory with data:', { name: data.name, categoryId: data.categoryId, hasImage: true });
 
-        const saved = await res.json();
-        const newSubCategory: Category = {
-          _id: saved._id || saved.id,
-          id: saved._id || saved.id,
-          name: saved.name,
-          title: saved.name,
-          image: saved.image,
-        };
+      const res = await fetch(`${API_URL}/menu/subcategories`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
 
-        setCategories(prev => [newSubCategory, ...prev]);
-        setIsAddSubCategoryDialogOpen(false);
-        resetSubCategory();
-        alert('Subcategory added successfully!');
-      } catch (e) {
-        console.error('Submit Error:', e);
-        alert('Failed to save subcategory');
+      console.log('SubCategory submission response status:', res.status);
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: 'No response body' }));
+        console.error('Save subcategory failed:', err);
+        alert('Failed to save subcategory: ' + (err.message || 'Unknown error'));
+        return;
       }
-    })();
+
+      const saved = await res.json();
+      console.log('SubCategory saved successfully:', saved);
+      
+      const newSubCategory: Category = {
+        _id: saved._id || saved.id,
+        id: saved._id || saved.id,
+        name: saved.name,
+        title: saved.name,
+        image: saved.image,
+      };
+
+      setCategories(prev => [newSubCategory, ...prev]);
+      setIsAddSubCategoryDialogOpen(false);
+      resetSubCategory();
+      alert('Subcategory added successfully!');
+    } catch (e) {
+      console.error('Submit Error:', e);
+      alert('Failed to save subcategory: ' + (e instanceof Error ? e.message : 'Unknown error'));
+    }
   };
 
   return (

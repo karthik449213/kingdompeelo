@@ -56,59 +56,57 @@ export const useMenu = create<MenuState>()(
 
       fetchMenu: async () => {
         try {
-          const menuData = await api.menu.getFull();
+          const data = await api.menu.getFull();
           const categories: Category[] = [];
           const subCategories: SubCategory[] = [];
           const items: Item[] = [];
 
-          menuData.forEach((categoryData: any) => {
-            // Map category
-            const category: Category = {
-              id: categoryData._id,
-              title: categoryData.name,
-              image: categoryData.image,
-              slug: categoryData.slug,
-            };
-            categories.push(category);
+          // Simple structure: data is array of categories, each with subCategories and nested dishes
+          if (Array.isArray(data)) {
+            data.forEach((categoryData: any) => {
+              const category: Category = {
+                id: categoryData._id,
+                title: categoryData.name,
+                image: categoryData.image,
+                slug: categoryData.slug,
+              };
+              categories.push(category);
 
-            // Map subcategories and items
-            if (categoryData.subCategories) {
-              categoryData.subCategories.forEach((subCatData: any) => {
-                const subCategory: SubCategory = {
-                  id: subCatData._id,
-                  title: subCatData.name,
-                  parentId: categoryData._id,
-                  slug: subCatData.slug,
-                  categoryId: categoryData._id,
-                };
-                subCategories.push(subCategory);
+              if (categoryData.subCategories && Array.isArray(categoryData.subCategories)) {
+                categoryData.subCategories.forEach((subCatData: any) => {
+                  const subCategory: SubCategory = {
+                    id: subCatData._id,
+                    title: subCatData.name,
+                    parentId: categoryData._id,
+                    slug: subCatData.slug,
+                    categoryId: categoryData._id,
+                  };
+                  subCategories.push(subCategory);
 
-                // Map items (dishes)
-                if (subCatData.dishes) {
-                  subCatData.dishes.forEach((dishData: any) => {
-                    const item: Item = {
-                      id: dishData._id,
-                      title: dishData.name,
-                      description: dishData.description,
-                      price: dishData.price,
-                      image: dishData.image,
-                      categoryId: categoryData._id,
-                      subCategoryId: subCatData._id,
-                    };
-                    items.push(item);
-                  });
-                }
-              });
-            }
-          });
+                  if (subCatData.dishes && Array.isArray(subCatData.dishes)) {
+                    subCatData.dishes.forEach((dishData: any) => {
+                      const item: Item = {
+                        id: dishData._id,
+                        title: dishData.name,
+                        description: dishData.description,
+                        price: dishData.price,
+                        image: dishData.image,
+                        categoryId: categoryData._id,
+                        subCategoryId: subCatData._id,
+                      };
+                      items.push(item);
+                    });
+                  }
+                });
+              }
+            });
+          }
 
           set({ categories, subCategories, items });
         } catch (error) {
           toast({ title: "Error", description: "Failed to load menu data." });
         }
-      },
-
-      addItem: (item) => {
+      },      addItem: (item) => {
         const newItem = { ...item, id: `i${Date.now()}` };
         set((state) => ({ items: [...state.items, newItem] }));
         toast({ title: "Item Added", description: `${item.title} has been added to the menu.` });
