@@ -766,7 +766,7 @@ export default function Dashboard() {
                             setEditingItem(itemObj);
                             setTimeout(() => {
                               setValue('title', itemObj.title || itemObj.name || '');
-                              setValue('price', String(itemObj.price || 0));
+                              setValue('price', Number(itemObj?.price ?? 0));
                               setValue('description', itemObj.description || '');
                               setValue('subCategoryId', itemObj.categoryId || '');
                             }, 0);

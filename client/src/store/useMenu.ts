@@ -47,6 +47,11 @@ interface MenuState {
   resetMenu: () => void;
 }
 
+
+
+// Assuming your types are defined elsewhere, or you can define them here
+// interface MenuState { ... }
+
 export const useMenu = create<MenuState>()(
   persist(
     (set, get) => ({
@@ -56,24 +61,19 @@ export const useMenu = create<MenuState>()(
 
       fetchMenu: async () => {
         try {
-<<<<<<< HEAD
-          // Fetch organized menu with categories, subcategories, and dishes
-          const menuData = await api.menu.getFull();
-=======
+          // 1. Fetch data ONCE
           const data = await api.menu.getFull();
->>>>>>> 09951e78bb94b77059389bc03fcbc6ecb5529d71
+
           const categories: Category[] = [];
           const subCategories: SubCategory[] = [];
           const items: Item[] = [];
 
-<<<<<<< HEAD
-          if (Array.isArray(menuData)) {
-            menuData.forEach((categoryData: any) => {
-=======
-          // Simple structure: data is array of categories, each with subCategories and nested dishes
+          // 2. Validate data is an array
           if (Array.isArray(data)) {
+            // 3. Single loop through the data
             data.forEach((categoryData: any) => {
->>>>>>> 09951e78bb94b77059389bc03fcbc6ecb5529d71
+              
+              // Extract Category
               const category: Category = {
                 id: categoryData._id,
                 title: categoryData.name,
@@ -82,8 +82,10 @@ export const useMenu = create<MenuState>()(
               };
               categories.push(category);
 
-              if (categoryData.subCategories && Array.isArray(categoryData.subCategories)) {
+              // Extract SubCategories
+              if (Array.isArray(categoryData.subCategories)) {
                 categoryData.subCategories.forEach((subCatData: any) => {
+                  
                   const subCategory: SubCategory = {
                     id: subCatData._id,
                     title: subCatData.name,
@@ -93,7 +95,8 @@ export const useMenu = create<MenuState>()(
                   };
                   subCategories.push(subCategory);
 
-                  if (subCatData.dishes && Array.isArray(subCatData.dishes)) {
+                  // Extract Items (Dishes)
+                  if (Array.isArray(subCatData.dishes)) {
                     subCatData.dishes.forEach((dishData: any) => {
                       const item: Item = {
                         id: dishData._id,
@@ -112,28 +115,19 @@ export const useMenu = create<MenuState>()(
             });
           }
 
-<<<<<<< HEAD
-          set({
-            categories,
-            subCategories,
-            items,
-          });
-        } catch (e) {
-          console.error('Failed to fetch menu:', e);
-          toast({
-            title: 'Error',
-            description: 'Failed to load menu',
-          });
-=======
+          // 4. Update state all at once
           set({ categories, subCategories, items });
+          
         } catch (error) {
+          console.error(error);
           toast({ title: "Error", description: "Failed to load menu data." });
->>>>>>> 09951e78bb94b77059389bc03fcbc6ecb5529d71
         }
-      },      addItem: (item) => {
+      },
+
+      addItem: (item) => {
         const newItem = { ...item, id: `i${Date.now()}` };
         set((state) => ({ items: [...state.items, newItem] }));
-        toast({ title: "Item Added", description: `${item.title} has been added to the menu.` });
+        toast({ title: "Item Added", description: `${item.title} has been added.` });
       },
 
       updateItem: (id, updatedItem) => {
@@ -147,7 +141,7 @@ export const useMenu = create<MenuState>()(
         set((state) => ({
           items: state.items.filter((i) => i.id !== id),
         }));
-        toast({ title: "Item Deleted", description: "Item has been removed from the menu." });
+        toast({ title: "Item Deleted", description: "Item removed." });
       },
 
       addCategory: (category) => {
