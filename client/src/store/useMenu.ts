@@ -56,55 +56,63 @@ export const useMenu = create<MenuState>()(
 
       fetchMenu: async () => {
         try {
+          // Fetch organized menu with categories, subcategories, and dishes
           const menuData = await api.menu.getFull();
           const categories: Category[] = [];
           const subCategories: SubCategory[] = [];
           const items: Item[] = [];
 
-          menuData.forEach((categoryData: any) => {
-            // Map category
-            const category: Category = {
-              id: categoryData._id,
-              title: categoryData.name,
-              image: categoryData.image,
-              slug: categoryData.slug,
-            };
-            categories.push(category);
+          if (Array.isArray(menuData)) {
+            menuData.forEach((categoryData: any) => {
+              const category: Category = {
+                id: categoryData._id,
+                title: categoryData.name,
+                image: categoryData.image,
+                slug: categoryData.slug,
+              };
+              categories.push(category);
 
-            // Map subcategories and items
-            if (categoryData.subCategories) {
-              categoryData.subCategories.forEach((subCatData: any) => {
-                const subCategory: SubCategory = {
-                  id: subCatData._id,
-                  title: subCatData.name,
-                  parentId: categoryData._id,
-                  slug: subCatData.slug,
-                  categoryId: categoryData._id,
-                };
-                subCategories.push(subCategory);
+              if (categoryData.subCategories && Array.isArray(categoryData.subCategories)) {
+                categoryData.subCategories.forEach((subCatData: any) => {
+                  const subCategory: SubCategory = {
+                    id: subCatData._id,
+                    title: subCatData.name,
+                    parentId: categoryData._id,
+                    slug: subCatData.slug,
+                    categoryId: categoryData._id,
+                  };
+                  subCategories.push(subCategory);
 
-                // Map items (dishes)
-                if (subCatData.dishes) {
-                  subCatData.dishes.forEach((dishData: any) => {
-                    const item: Item = {
-                      id: dishData._id,
-                      title: dishData.name,
-                      description: dishData.description,
-                      price: dishData.price,
-                      image: dishData.image,
-                      categoryId: categoryData._id,
-                      subCategoryId: subCatData._id,
-                    };
-                    items.push(item);
-                  });
-                }
-              });
-            }
+                  if (subCatData.dishes && Array.isArray(subCatData.dishes)) {
+                    subCatData.dishes.forEach((dishData: any) => {
+                      const item: Item = {
+                        id: dishData._id,
+                        title: dishData.name,
+                        description: dishData.description,
+                        price: dishData.price,
+                        image: dishData.image,
+                        categoryId: categoryData._id,
+                        subCategoryId: subCatData._id,
+                      };
+                      items.push(item);
+                    });
+                  }
+                });
+              }
+            });
+          }
+
+          set({
+            categories,
+            subCategories,
+            items,
           });
-
-          set({ categories, subCategories, items });
-        } catch (error) {
-          toast({ title: "Error", description: "Failed to load menu data." });
+        } catch (e) {
+          console.error('Failed to fetch menu:', e);
+          toast({
+            title: 'Error',
+            description: 'Failed to load menu',
+          });
         }
       },
 
@@ -136,7 +144,6 @@ export const useMenu = create<MenuState>()(
       deleteCategory: (id) => {
         set((state) => ({
           categories: state.categories.filter((c) => c.id !== id),
-          // Optional: cascade delete items or keep them? Let's keep them for now or generic 'uncategorized'
         }));
       },
 

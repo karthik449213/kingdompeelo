@@ -142,7 +142,8 @@ export default function Dashboard() {
     const fetchDishes = async () => {
       try {
         // Use the API route that returns dishes (menuRoutes exposes /api/menu/dishes)
-        const res = await fetch(`${API_URL}/menu/dishes`);
+        // Add limit=1000 to get all dishes instead of just 20
+        const res = await fetch(`${API_URL}/menu/dishes?limit=1000`);
         if (!res.ok) {
           console.error('Failed to fetch dishes:', res.status);
           return;
@@ -559,7 +560,7 @@ export default function Dashboard() {
                    
                    <div className="space-y-2">
                      <Label htmlFor="subcategory">Subcategory</Label>
-                     <Select onValueChange={(val) => setValue("subCategoryId", val)}>
+                     <Select onValueChange={(val) => setValue("subCategoryId", val)} defaultValue="">
                        <SelectTrigger>
                          <SelectValue placeholder="Select subcategory" />
                        </SelectTrigger>
@@ -726,10 +727,12 @@ export default function Dashboard() {
                             };
                             // populate form and open
                             setEditingItem(itemObj);
-                            setValue('title', itemObj.title || itemObj.name || '');
-                            setValue('price', Number(itemObj.price || 0));
-                            setValue('description', itemObj.description || '');
-                            setValue('subCategoryId', itemObj.categoryId || '');
+                            setTimeout(() => {
+                              setValue('title', itemObj.title || itemObj.name || '');
+                              setValue('price', String(itemObj.price || 0));
+                              setValue('description', itemObj.description || '');
+                              setValue('subCategoryId', itemObj.categoryId || '');
+                            }, 0);
                             setIsAddDialogOpen(true);
                           }}>
                             <Edit2 className="h-4 w-4" />
