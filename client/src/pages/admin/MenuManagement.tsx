@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useMenu } from '@/store/useMenu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,22 +52,21 @@ export default function AdminMenuManagement() {
   const [filterSubCategory, setFilterSubCategory] = useState('');
   const [showOnlyStandalone, setShowOnlyStandalone] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+  const [token, setToken] = useState<string>('');
 
   // Load data on mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    const authToken = localStorage.getItem('token');
+    if (!authToken) {
       window.location.href = '/admin/login';
       return;
     }
-    loadMenu();
-    loadCategories();
-    loadSubCategories();
+    setToken(authToken);
   }, []);
 
   // Load menu from API
-  const loadMenu = async () => {
+  const loadMenu = useCallback(async () => {
+    if (!token) return;
     try {
       const res = await fetch(`${API_URL}/menu/dishes`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -77,10 +76,10 @@ export default function AdminMenuManagement() {
     } catch (err) {
       console.error('Failed to load menu:', err);
     }
-  };
+  }, [token]);
 
   // Load categories
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/menu/categories`);
       const data = await res.json();
@@ -88,10 +87,10 @@ export default function AdminMenuManagement() {
     } catch (err) {
       console.error('Failed to load categories:', err);
     }
-  };
+  }, []);
 
   // Load subcategories
-  const loadSubCategories = async () => {
+  const loadSubCategories = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/menu/subcategories`);
       const data = await res.json();
@@ -99,7 +98,16 @@ export default function AdminMenuManagement() {
     } catch (err) {
       console.error('Failed to load subcategories:', err);
     }
-  };
+  }, []);
+
+  // Load data when token is set
+  useEffect(() => {
+    if (token) {
+      loadMenu();
+      loadCategories();
+      loadSubCategories();
+    }
+  }, [token, loadMenu, loadCategories, loadSubCategories]);
 
   const handleChange = (e: any) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -113,7 +121,8 @@ export default function AdminMenuManagement() {
   };
 
   const handleAdd = async () => {
-    if (!form.name || !form.price || !form.category || !form.description) {
+    if (!form.name || !form.price || !form.category || !form.subCategory || !form.description || !file) {
+      alert('Please fill in all required fields including category, subcategory, and an image');
       return;
     }
 
@@ -122,9 +131,8 @@ export default function AdminMenuManagement() {
       formData.append('name', form.name);
       formData.append('price', form.price);
       formData.append('description', form.description);
-      formData.append('category', form.category);
       if (form.subCategory) formData.append('subCategory', form.subCategory);
-      if (file) formData.append('image', file);
+      formData.append('image', file);
 
       const res = await fetch(`${API_URL}/menu/dishes`, {
         method: 'POST',
@@ -140,6 +148,7 @@ export default function AdminMenuManagement() {
       loadMenu();
     } catch (err: any) {
       console.error('Error adding dish:', err);
+      alert('Error adding dish: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -171,7 +180,8 @@ export default function AdminMenuManagement() {
   };
 
   const handleUpdate = async () => {
-    if (!editingId || !form.name || !form.price || !form.category || !form.description) {
+    if (!editingId || !form.name || !form.price || !form.category || !form.subCategory || !form.description) {
+      alert('Please fill in all required fields including category and subcategory');
       return;
     }
 
@@ -180,7 +190,6 @@ export default function AdminMenuManagement() {
       formData.append('name', form.name);
       formData.append('price', form.price);
       formData.append('description', form.description);
-      formData.append('category', form.category);
       if (form.subCategory) formData.append('subCategory', form.subCategory);
       if (file) formData.append('image', file);
 
@@ -198,6 +207,7 @@ export default function AdminMenuManagement() {
       loadMenu();
     } catch (err: any) {
       console.error('Error updating dish:', err);
+      alert('Error updating dish: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -211,7 +221,11 @@ export default function AdminMenuManagement() {
   // Get filtered subcategories based on selected category
   const getAvailableSubCategories = () => {
     if (!form.category) return [];
-    return subCategories.filter((sc) => sc.category === form.category);
+    return subCategories.filter((sc) => {
+      // Handle both cases: category as string ID or as object with _id
+      const categoryId = typeof sc.category === 'string' ? sc.category : (sc.category as any)?._id;
+      return categoryId === form.category;
+    });
   };
 
   const getFilteredMenu = () => {
@@ -306,7 +320,7 @@ export default function AdminMenuManagement() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="subCategory">SubCategory (Optional)</Label>
+                  <Label htmlFor="subCategory">SubCategory *</Label>
                   <div className="flex gap-2 items-center">
                     <Select
                       value={form.subCategory}
@@ -335,9 +349,6 @@ export default function AdminMenuManagement() {
                       </Button>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Leave empty for category-only dish
-                  </p>
                 </div>
 
                 <div className="space-y-2">

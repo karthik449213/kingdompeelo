@@ -56,14 +56,24 @@ export const useMenu = create<MenuState>()(
 
       fetchMenu: async () => {
         try {
+<<<<<<< HEAD
           // Fetch organized menu with categories, subcategories, and dishes
           const menuData = await api.menu.getFull();
+=======
+          const data = await api.menu.getFull();
+>>>>>>> 09951e78bb94b77059389bc03fcbc6ecb5529d71
           const categories: Category[] = [];
           const subCategories: SubCategory[] = [];
           const items: Item[] = [];
 
+<<<<<<< HEAD
           if (Array.isArray(menuData)) {
             menuData.forEach((categoryData: any) => {
+=======
+          // Simple structure: data is array of categories, each with subCategories and nested dishes
+          if (Array.isArray(data)) {
+            data.forEach((categoryData: any) => {
+>>>>>>> 09951e78bb94b77059389bc03fcbc6ecb5529d71
               const category: Category = {
                 id: categoryData._id,
                 title: categoryData.name,
@@ -102,6 +112,7 @@ export const useMenu = create<MenuState>()(
             });
           }
 
+<<<<<<< HEAD
           set({
             categories,
             subCategories,
@@ -113,10 +124,13 @@ export const useMenu = create<MenuState>()(
             title: 'Error',
             description: 'Failed to load menu',
           });
+=======
+          set({ categories, subCategories, items });
+        } catch (error) {
+          toast({ title: "Error", description: "Failed to load menu data." });
+>>>>>>> 09951e78bb94b77059389bc03fcbc6ecb5529d71
         }
-      },
-
-      addItem: (item) => {
+      },      addItem: (item) => {
         const newItem = { ...item, id: `i${Date.now()}` };
         set((state) => ({ items: [...state.items, newItem] }));
         toast({ title: "Item Added", description: `${item.title} has been added to the menu.` });
