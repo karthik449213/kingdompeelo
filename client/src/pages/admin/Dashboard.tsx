@@ -688,7 +688,7 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartRevenue}>
                     <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+                    <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value}`} />
                     <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }} />
                     <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -747,7 +747,7 @@ export default function Dashboard() {
                       <td className="px-6 py-4">
                         {categories.find(c => (c._id || c.id) === categoryId)?.name || categories.find(c => (c._id || c.id) === categoryId)?.title || 'Uncategorized'}
                       </td>
-                      <td className="px-6 py-4">${item.price.toFixed(2)}</td>
+                      <td className="px-6 py-4">₹{item.price.toFixed(2)}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => {
