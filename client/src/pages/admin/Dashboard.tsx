@@ -35,6 +35,7 @@ type Category = {
   name?: string;
   title?: string;
   image?: string;
+  category?: string | { _id: string; name: string }; // For subcategories to store parent category
 };
 
 // Mock Data for Charts (Static for now)
@@ -183,7 +184,8 @@ export default function Dashboard() {
           id: sub._id,
           name: sub.name,
           title: sub.name,
-          image: sub.image
+          image: sub.image,
+          category: sub.category // Store parent category
         })) : []);
       } catch (err) {
         console.error('SubCategories Error:', err);
@@ -261,9 +263,9 @@ export default function Dashboard() {
           return;
         }
 
-        // Validate image is provided
+        // Validate image is provided (required for new items, optional for editing)
         const fileList = (data as any).image as FileList | undefined;
-        if (!fileList || fileList.length === 0) {
+        if (!editingItem && (!fileList || fileList.length === 0)) {
           alert('Please upload an image for the dish');
           return;
         }
@@ -273,7 +275,17 @@ export default function Dashboard() {
         form.append('price', String(data.price));
         form.append('description', data.description);
         form.append('subCategory', data.subCategoryId);
-        form.append('image', fileList[0]);
+        
+        // Find the parent category for this subcategory
+        const selectedSubCat = categories.find(c => c._id === data.subCategoryId);
+        if (selectedSubCat && selectedSubCat.category) {
+          const categoryId = typeof selectedSubCat.category === 'object' ? selectedSubCat.category._id : selectedSubCat.category;
+          form.append('category', categoryId);
+        }
+        
+        if (fileList && fileList.length > 0) {
+          form.append('image', fileList[0]);
+        }
 
         let res;
         if (editingItem) {
@@ -576,7 +588,7 @@ export default function Dashboard() {
              */}
             
 
-             {/* Add Item Dialog 
+             {/* Add Item Dialog */}
              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                <DialogTrigger asChild>
                  <Button className="gap-2" onClick={() => { setEditingItem(null); reset(); }}><Plus className="h-4 w-4" /> Add Item</Button>
@@ -625,15 +637,15 @@ export default function Dashboard() {
                    <div className="space-y-2">
                      <Label htmlFor="image">Image</Label>
                      <input id="image" type="file" accept="image/*" {...register('image')} />
-                     <p className="text-xs text-muted-foreground">Upload an image for the item (optional).</p>
+                     <p className="text-xs text-muted-foreground">Upload an image for the item {editingItem ? '(optional)' : '(required)'}.</p>
                    </div>
 
                    <DialogFooter>
-                     <Button type="submit">Save Item</Button>
+                     <Button type="submit">{editingItem ? 'Update Item' : 'Save Item'}</Button>
                    </DialogFooter>
                  </form>
                </DialogContent>
-             </Dialog> */}
+             </Dialog>
 
              <Button variant="destructive" className="gap-2" onClick={handleLogout}><LogOut className="h-4 w-4" /> Logout</Button>
           </div>
