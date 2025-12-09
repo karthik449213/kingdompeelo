@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
-import heroImg from '@assets/generated_images/bright_and_airy_juice_bar_interior_with_fresh_fruits_on_display..png';
+import heroImg from '@assets/generated_images/Gemini_Generated_Image_39413i39413i3941.png';
 
 export function Hero() {
   return (
@@ -10,7 +10,7 @@ export function Hero() {
         className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105 animate-slow-zoom"
         style={{ backgroundImage: `url(${heroImg})` }}
       />
-      <div className="absolute inset-0 bg-linear-to-b from-black/60 via-black/40 to-black/20 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-linear-to-b from-black/60 via-black/40 to-black/20 backdrop-blur-[1px]" />
       
       <div className="relative h-full container mx-auto px-4 flex flex-col justify-center items-center text-center text-white z-10">
         <motion.span 

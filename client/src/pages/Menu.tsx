@@ -5,9 +5,11 @@ import { useMenu } from '@/store/useMenu';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useLocation } from 'wouter';
 
 export default function Menu() {
   const { categories, subCategories, items, fetchMenu } = useMenu();
+  const [location] = useLocation();
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeSubCategory, setActiveSubCategory] = useState('all');
@@ -21,6 +23,16 @@ export default function Menu() {
     loadMenu();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Handle query parameters from URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.split('?')[1]);
+    const categoryParam = params.get('category');
+    if (categoryParam) {
+      setActiveCategory(categoryParam);
+      setActiveSubCategory('all');
+    }
+  }, [location]);
 
   const filteredSubCategories = activeCategory === 'all' 
     ? subCategories 

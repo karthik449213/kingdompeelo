@@ -20,6 +20,8 @@ interface MenuItem {
   price: number;
   description: string;
   image?: string;
+  available?: boolean;
+  stars?: number;
 }
 
 interface Category {
@@ -44,6 +46,8 @@ export default function AdminMenuManagement() {
     category: '',
     subCategory: '',
     description: '',
+    available: true,
+    stars: 5,
   });
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -131,7 +135,10 @@ export default function AdminMenuManagement() {
       formData.append('name', form.name);
       formData.append('price', form.price);
       formData.append('description', form.description);
-      if (form.subCategory) formData.append('subCategory', form.subCategory);
+      formData.append('category', form.category);
+      formData.append('subCategory', form.subCategory);
+      formData.append('available', String(form.available));
+      formData.append('stars', String(form.stars));
       formData.append('image', file);
 
       const res = await fetch(`${API_URL}/menu/dishes`, {
@@ -141,7 +148,7 @@ export default function AdminMenuManagement() {
       });
 
       if (!res.ok) throw new Error('Failed to add dish');
-      setForm({ name: '', price: '', category: '', subCategory: '', description: '' });
+      setForm({ name: '', price: '', category: '', subCategory: '', description: '', available: true, stars: 5 });
       setFile(null);
       setPreview(null);
       setIsAddDialogOpen(false);
@@ -174,6 +181,8 @@ export default function AdminMenuManagement() {
       category: typeof item.category === 'string' ? item.category : item.category?._id || '',
       subCategory: typeof item.subCategory === 'string' ? item.subCategory : item.subCategory?._id || '',
       description: item.description || '',
+      available: item.available ?? true,
+      stars: item.stars ?? 5,
     });
     setPreview(item.image || null);
     setFile(null);
@@ -190,7 +199,10 @@ export default function AdminMenuManagement() {
       formData.append('name', form.name);
       formData.append('price', form.price);
       formData.append('description', form.description);
-      if (form.subCategory) formData.append('subCategory', form.subCategory);
+      formData.append('category', form.category);
+      formData.append('subCategory', form.subCategory);
+      formData.append('available', String(form.available));
+      formData.append('stars', String(form.stars));
       if (file) formData.append('image', file);
 
       const res = await fetch(`${API_URL}/menu/dishes/${editingId}`, {
@@ -201,7 +213,7 @@ export default function AdminMenuManagement() {
 
       if (!res.ok) throw new Error('Failed to update');
       setEditingId(null);
-      setForm({ name: '', price: '', category: '', subCategory: '', description: '' });
+      setForm({ name: '', price: '', category: '', subCategory: '', description: '', available: true, stars: 5 });
       setFile(null);
       setPreview(null);
       loadMenu();
@@ -213,7 +225,7 @@ export default function AdminMenuManagement() {
 
   const cancelEdit = () => {
     setEditingId(null);
-    setForm({ name: '', price: '', category: '', subCategory: '', description: '' });
+    setForm({ name: '', price: '', category: '', subCategory: '', description: '', available: true, stars: 5 });
     setFile(null);
     setPreview(null);
   };
@@ -232,18 +244,23 @@ export default function AdminMenuManagement() {
     let filtered = menu;
 
     if (showOnlyStandalone) {
+      // Show only items without subCategory
       filtered = filtered.filter((item) => !item.subCategory);
     } else {
+      // Filter by category
       if (filterCategory) {
         filtered = filtered.filter((item) => {
-          const catId = typeof item.category === 'string' ? item.category : item.category?._id;
-          return catId === filterCategory;
+          // Get the category ID from the item
+          const itemCategoryId = typeof item.category === 'string' ? item.category : item.category?._id;
+          return itemCategoryId === filterCategory;
         });
       }
+      // Filter by subcategory
       if (filterSubCategory) {
         filtered = filtered.filter((item) => {
-          const subCatId = typeof item.subCategory === 'string' ? item.subCategory : item.subCategory?._id;
-          return subCatId === filterSubCategory;
+          // Get the subcategory ID from the item
+          const itemSubCategoryId = typeof item.subCategory === 'string' ? item.subCategory : item.subCategory?._id;
+          return itemSubCategoryId === filterSubCategory;
         });
       }
     }
@@ -377,6 +394,32 @@ export default function AdminMenuManagement() {
                   />
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="stars">Star Rating</Label>
+                  <Input
+                    id="stars"
+                    type="number"
+                    min="0"
+                    max="5"
+                    step="0.5"
+                    placeholder="0-5"
+                    value={form.stars}
+                    onChange={(e) => setForm({ ...form, stars: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={form.available}
+                      onChange={(e) => setForm({ ...form, available: e.target.checked })}
+                      className="w-4 h-4"
+                    />
+                    Available for Order
+                  </Label>
+                </div>
+
                 <div className="flex gap-2 justify-end pt-4">
                   <Button variant="outline" onClick={cancelEdit}>
                     Cancel
@@ -462,7 +505,10 @@ export default function AdminMenuManagement() {
                       </SelectTrigger>
                       <SelectContent>
                         {subCategories
-                          .filter((sc) => sc.category === filterCategory)
+                          .filter((sc) => {
+                            const scCategoryId = typeof sc.category === 'string' ? sc.category : (sc.category as any)?._id;
+                            return scCategoryId === filterCategory;
+                          })
                           .map((sc) => (
                             <SelectItem key={sc._id} value={sc._id}>
                               {sc.name}
@@ -540,6 +586,15 @@ export default function AdminMenuManagement() {
                               </span>
                             </p>
                           )}
+                          <p>
+                            Rating: <span className="font-semibold">{item.stars ?? 5} ⭐</span>
+                          </p>
+                          <p>
+                            Status:{' '}
+                            <span className={`font-semibold ${item.available !== false ? 'text-green-600' : 'text-red-600'}`}>
+                              {item.available !== false ? '✓ Available' : '✗ Not Available'}
+                            </span>
+                          </p>
                         </div>
                       </div>
                     </div>

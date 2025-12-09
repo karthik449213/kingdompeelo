@@ -26,6 +26,8 @@ export interface Item {
   description: string;
   categoryId: string;
   subCategoryId?: string;
+  available: boolean;
+  stars?: number;
 }
 
 interface MenuState {
@@ -104,6 +106,8 @@ export const useMenu = create<MenuState>()(
                         description: dishData.description,
                         price: dishData.price,
                         image: dishData.image,
+                        available: dishData.available,
+                        stars: dishData.stars,
                         categoryId: categoryData._id,
                         subCategoryId: subCatData._id,
                       };
