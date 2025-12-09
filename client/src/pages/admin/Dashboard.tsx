@@ -483,15 +483,19 @@ export default function Dashboard() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-serif font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground">Manage your menu and view performance.</p>
+            <p className="text-muted-foreground">Manage your menu and View  performance.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
              <Button variant="outline" onClick={() => window.location.href = '/admin/menu'}>Menu Management</Button>
              <Button variant="outline" onClick={() => window.location.href = '/admin/categories'}>Category Management</Button>
              <Button variant="outline" onClick={() => window.location.href = '/admin/testimonials'}>Testimonial Management</Button>
+             <Button variant="outline" onClick={() => window.location.href = '/menu'}>See Public Menu</Button>
 
+       
              
-             {/* Add Category Dialog */}
+             
+             
+            {/* Add Category Dialog 
              <Dialog open={isAddCategoryDialogOpen} onOpenChange={setIsAddCategoryDialogOpen}>
                <DialogTrigger asChild>
                  <Button variant="outline" className="gap-2"><Plus className="h-4 w-4" /> Add Category</Button>
@@ -521,9 +525,9 @@ export default function Dashboard() {
                    </DialogFooter>
                  </form>
                </DialogContent>
-             </Dialog>
+             </Dialog>*/}
 
-             {/* Add SubCategory Dialog */}
+             {/* Add SubCategory Dialog 
              <Dialog open={isAddSubCategoryDialogOpen} onOpenChange={setIsAddSubCategoryDialogOpen}>
                <DialogTrigger asChild>
                  <Button variant="outline" className="gap-2"><Plus className="h-4 w-4" /> Add SubCategory</Button>
@@ -569,8 +573,10 @@ export default function Dashboard() {
                  </form>
                </DialogContent>
              </Dialog>
+             */}
+            
 
-             {/* Add Item Dialog */}
+             {/* Add Item Dialog 
              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                <DialogTrigger asChild>
                  <Button className="gap-2" onClick={() => { setEditingItem(null); reset(); }}><Plus className="h-4 w-4" /> Add Item</Button>
@@ -627,7 +633,7 @@ export default function Dashboard() {
                    </DialogFooter>
                  </form>
                </DialogContent>
-             </Dialog>
+             </Dialog> */}
 
              <Button variant="destructive" className="gap-2" onClick={handleLogout}><LogOut className="h-4 w-4" /> Logout</Button>
           </div>
