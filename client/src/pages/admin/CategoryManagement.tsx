@@ -66,7 +66,7 @@ export default function AdminCategoryManagement() {
       console.error('Failed to load categories:', err);
     }
   };
-
+console.log(API_URL);
   // Load subcategories from API
   const loadSubCategories = async () => {
     try {

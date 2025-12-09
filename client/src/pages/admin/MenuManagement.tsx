@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent,DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Navbar } from '@/components/layout/Navbar';
@@ -293,6 +293,9 @@ export default function AdminMenuManagement() {
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>{editingId ? 'Edit Dish' : 'Add New Dish'}</DialogTitle>
+                   <DialogDescription>
+      This action is permanent and cannot be undone.
+    </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 mt-4">
                 <div className="space-y-2">
@@ -439,7 +442,7 @@ export default function AdminMenuManagement() {
             <CardTitle>Filter Dishes</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-4 mb-4">
               <input
                 type="checkbox"
                 id="showStandalone"
@@ -454,8 +457,9 @@ export default function AdminMenuManagement() {
               <Label htmlFor="showStandalone" className="cursor-pointer">
                 Show only dishes with Category only (no SubCategory)
               </Label>
+              
             </div>
-
+        
             {!showOnlyStandalone && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -504,6 +508,9 @@ export default function AdminMenuManagement() {
                         <SelectValue placeholder="All subcategories" />
                       </SelectTrigger>
                       <SelectContent>
+
+                        
+                        
                         {subCategories
                           .filter((sc) => {
                             const scCategoryId = typeof sc.category === 'string' ? sc.category : (sc.category as any)?._id;
@@ -514,6 +521,7 @@ export default function AdminMenuManagement() {
                               {sc.name}
                             </SelectItem>
                           ))}
+                            
                       </SelectContent>
                     </Select>
                     {filterSubCategory && (
@@ -521,7 +529,10 @@ export default function AdminMenuManagement() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => setFilterSubCategory('')}
+                        onClick={() => {
+                           
+                          setFilterSubCategory('');
+                        }}
                       >
                         Clear
                       </Button>
