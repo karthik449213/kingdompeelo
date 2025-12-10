@@ -6,6 +6,9 @@ import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useLocation } from 'wouter';
+import CategorySheet from '@/components/menu/categorysheet';
+import { Button } from '@/components/ui/button';
+import { Menu as MenuIcon } from 'lucide-react';
 
 export default function Menu() {
   const { categories, subCategories, items, fetchMenu } = useMenu();
@@ -13,6 +16,7 @@ export default function Menu() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeSubCategory, setActiveSubCategory] = useState('all');
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
     const loadMenu = async () => {
@@ -58,8 +62,8 @@ export default function Menu() {
 
         {!isLoading && categories.length > 0 && (
           <>
-            {/* Category Filter */}
-            <div className="flex flex-wrap justify-center gap-4 mb-8">
+            {/* Category Filter - desktop, hidden on mobile */}
+            <div className="hidden md:flex flex-wrap justify-center gap-4 mb-8">
               <button
                 onClick={() => { setActiveCategory('all'); setActiveSubCategory('all'); }}
                 className={cn(
@@ -85,6 +89,19 @@ export default function Menu() {
                   {cat.title}
                 </button>
               ))}
+            </div>
+
+            {/* Mobile: floating icon to open category sheet (bottom-right) */}
+            {/* keep this small in the layout flow; actual fixed positioning is applied on the Button */}
+            <div className="md:hidden">
+              <Button
+                onClick={() => setSheetOpen(true)}
+                size="icon"
+                aria-label="Open categories"
+                className="fixed bottom-6 right-4 z-50 md:hidden"
+              >
+                <MenuIcon />
+              </Button>
             </div>
 
             {/* SubCategory Filter */}
@@ -143,6 +160,15 @@ export default function Menu() {
           </div>
         )}
       </div>
+
+      {/* Mobile Category Sheet (rendered outside main container) */}
+      <CategorySheet
+        categories={categories}
+        activeCategory={activeCategory}
+        open={sheetOpen}
+        onOpenChange={(open) => setSheetOpen(open)}
+        onSelect={(id) => { setActiveCategory(id); setActiveSubCategory('all'); setSheetOpen(false); }}
+      />
 
       <Footer />
     </div>
