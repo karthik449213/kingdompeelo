@@ -9,7 +9,7 @@ import { Dialog, DialogContent,DialogDescription, DialogHeader, DialogTitle, Dia
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Navbar } from '@/components/layout/Navbar';
-import { Plus, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Search, ArrowUp, Star } from 'lucide-react';
 import { API_URL } from '@/lib/utils';
 
 interface MenuItem {
@@ -52,9 +52,8 @@ export default function AdminMenuManagement() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [filterCategory, setFilterCategory] = useState('');
-  const [filterSubCategory, setFilterSubCategory] = useState('');
-  const [showOnlyStandalone, setShowOnlyStandalone] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [token, setToken] = useState<string>('');
 
@@ -72,7 +71,7 @@ export default function AdminMenuManagement() {
   const loadMenu = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/menu/dishes`, {
+      const res = await fetch(`${API_URL}/menu/dishes?limit=1000`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -112,6 +111,40 @@ export default function AdminMenuManagement() {
       loadSubCategories();
     }
   }, [token, loadMenu, loadCategories, loadSubCategories]);
+
+  // Handle scroll to top visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollToTop(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Helper function to render star rating
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`h-4 w-4 ${
+              star <= Math.floor(rating)
+                ? 'fill-amber-400 text-amber-400'
+                : star - 0.5 <= rating
+                ? 'fill-amber-200 text-amber-400'
+                : 'text-gray-300'
+            }`}
+          />
+        ))}
+        <span className="text-xs text-muted-foreground ml-1">({rating})</span>
+      </div>
+    );
+  };
 
   const handleChange = (e: any) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -241,31 +274,9 @@ export default function AdminMenuManagement() {
   };
 
   const getFilteredMenu = () => {
-    let filtered = menu;
-
-    if (showOnlyStandalone) {
-      // Show only items without subCategory
-      filtered = filtered.filter((item) => !item.subCategory);
-    } else {
-      // Filter by category
-      if (filterCategory) {
-        filtered = filtered.filter((item) => {
-          // Get the category ID from the item
-          const itemCategoryId = typeof item.category === 'string' ? item.category : item.category?._id;
-          return itemCategoryId === filterCategory;
-        });
-      }
-      // Filter by subcategory
-      if (filterSubCategory) {
-        filtered = filtered.filter((item) => {
-          // Get the subcategory ID from the item
-          const itemSubCategoryId = typeof item.subCategory === 'string' ? item.subCategory : item.subCategory?._id;
-          return itemSubCategoryId === filterSubCategory;
-        });
-      }
-    }
-
-    return filtered;
+    return menu.filter((item) => 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   };
 
   return (
@@ -273,10 +284,10 @@ export default function AdminMenuManagement() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-10">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-serif font-bold">Dish Management</h1>
-            <p className="text-muted-foreground">Add, edit, and delete dishes</p>
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold">Dish Management</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Add, edit, and delete dishes</p>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
@@ -290,14 +301,14 @@ export default function AdminMenuManagement() {
                 <Plus className="h-4 w-4" /> Add Dish
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingId ? 'Edit Dish' : 'Add New Dish'}</DialogTitle>
                    <DialogDescription>
       This action is permanent and cannot be undone.
     </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 mt-4">
+              <div className="space-y-4 mt-4 pb-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Dish Name</Label>
                   <Input
@@ -436,124 +447,25 @@ export default function AdminMenuManagement() {
           </Dialog>
         </div>
 
-        {/* Filter Section */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Filter Dishes</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-          <div className="flex items-center gap-4 mb-4">
-              <input
-                type="checkbox"
-                id="showStandalone"
-                checked={showOnlyStandalone}
-                onChange={(e) => {
-                  setShowOnlyStandalone(e.target.checked);
-                  setFilterCategory('');
-                  setFilterSubCategory('');
-                }}
-                className="w-4 h-4"
-              />
-              <Label htmlFor="showStandalone" className="cursor-pointer">
-                Show only dishes with Category only (no SubCategory)
-              </Label>
-              
-            </div>
-        
-            {!showOnlyStandalone && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="filterCategory">Filter by Category</Label>
-                  <div className="flex gap-2">
-                    <Select value={filterCategory} onValueChange={(val) => {
-                      setFilterCategory(val);
-                      setFilterSubCategory('');
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All categories" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((c) => (
-                          <SelectItem key={c._id} value={c._id}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {filterCategory && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setFilterCategory('');
-                          setFilterSubCategory('');
-                        }}
-                      >
-                        Clear
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="filterSubCategory">Filter by SubCategory</Label>
-                  <div className="flex gap-2">
-                    <Select
-                      value={filterSubCategory}
-                      onValueChange={setFilterSubCategory}
-                      disabled={!filterCategory}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All subcategories" />
-                      </SelectTrigger>
-                      <SelectContent>
-
-                        
-                        
-                        {subCategories
-                          .filter((sc) => {
-                            const scCategoryId = typeof sc.category === 'string' ? sc.category : (sc.category as any)?._id;
-                            return scCategoryId === filterCategory;
-                          })
-                          .map((sc) => (
-                            <SelectItem key={sc._id} value={sc._id}>
-                              {sc.name}
-                            </SelectItem>
-                          ))}
-                            
-                      </SelectContent>
-                    </Select>
-                    {filterSubCategory && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                           
-                          setFilterSubCategory('');
-                        }}
-                      >
-                        Clear
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Search Bar */}
+        <div className="mb-8">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+            <Input
+              placeholder="Search dishes by name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 py-2"
+            />
+          </div>
+        </div>
 
         {/* Menu Items Display */}
         <Card>
           <CardHeader>
             <CardTitle>
               Dishes
-              {showOnlyStandalone
-                ? ' (Category Only)'
-                : filterCategory || filterSubCategory
-                ? ' (Filtered)'
-                : ''}
+              {searchTerm ? ' (Search Results)' : ''}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -564,22 +476,22 @@ export default function AdminMenuManagement() {
                 {getFilteredMenu().map((item) => (
                   <div
                     key={item._id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-secondary/50 transition"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg hover:bg-secondary/50 transition gap-4"
                   >
-                    <div className="flex items-center gap-4 flex-1">
+                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                       {item.image && (
                         <img
                           src={item.image}
                           alt={item.name}
-                          className="w-20 h-16 object-cover rounded"
+                          className="w-16 h-12 sm:w-20 sm:h-16 object-cover rounded flex-shrink-0"
                         />
                       )}
-                      <div className="flex-1">
-                        <h3 className="font-bold">{item.name}</h3>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-sm sm:text-base truncate">{item.name}</h3>
                         <p className="text-sm text-muted-foreground">₹{item.price}</p>
-                        <p className="text-xs text-muted-foreground">{item.description}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
                         <div className="text-xs mt-2 space-y-1">
-                          <p>
+                          <p className="truncate">
                             Category:{' '}
                             <span className="font-semibold">
                               {typeof item.category === 'string'
@@ -588,7 +500,7 @@ export default function AdminMenuManagement() {
                             </span>
                           </p>
                           {item.subCategory && (
-                            <p>
+                            <p className="truncate">
                               SubCategory:{' '}
                               <span className="font-semibold">
                                 {typeof item.subCategory === 'string'
@@ -597,9 +509,10 @@ export default function AdminMenuManagement() {
                               </span>
                             </p>
                           )}
-                          <p>
-                            Rating: <span className="font-semibold">{item.stars ?? 5} ⭐</span>
-                          </p>
+                          <div className="flex items-center">
+                            <span className="font-semibold mr-1">Rating:</span>
+                            {renderStars(item.stars ?? 5)}
+                          </div>
                           <p>
                             Status:{' '}
                             <span className={`font-semibold ${item.available !== false ? 'text-green-600' : 'text-red-600'}`}>
@@ -609,23 +522,27 @@ export default function AdminMenuManagement() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full sm:w-auto flex-shrink-0">
                       <Button
                         size="sm"
                         variant="outline"
+                        className="flex-1 sm:flex-none"
                         onClick={() => {
                           startEdit(item);
                           setIsAddDialogOpen(true);
                         }}
                       >
                         <Edit2 className="h-4 w-4" />
+                        <span className="sm:hidden ml-1">Edit</span>
                       </Button>
                       <Button
                         size="sm"
                         variant="destructive"
+                        className="flex-1 sm:flex-none"
                         onClick={() => handleDelete(item._id)}
                       >
                         <Trash2 className="h-4 w-4" />
+                        <span className="sm:hidden ml-1">Delete</span>
                       </Button>
                     </div>
                   </div>
@@ -635,6 +552,17 @@ export default function AdminMenuManagement() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Scroll to Top Button */}
+      {showScrollToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 bg-primary text-primary-foreground rounded-full p-3 shadow-lg hover:bg-primary/90 transition-all duration-300 z-50"
+          title="Scroll to top"
+        >
+          <ArrowUp className="h-6 w-6" />
+        </button>
+      )}
     </div>
   );
 }

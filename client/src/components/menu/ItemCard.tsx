@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/store/useCart';
-import { Plus } from 'lucide-react';
+import { Plus, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import type { Item } from '@/store/useMenu';
@@ -16,6 +16,27 @@ export function ItemCard({ item }: ItemCardProps) {
   // Default to available if undefined
   const isAvailable = item.available !== false;
   const starRating = item.stars ?? 5;
+
+  // Helper function to render star rating
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`h-3.5 w-3.5 ${
+              star <= Math.floor(rating)
+                ? 'fill-amber-400 text-amber-400'
+                : star - 0.5 <= rating
+                ? 'fill-amber-200 text-amber-400'
+                : 'text-gray-300'
+            }`}
+          />
+        ))}
+        <span className="text-xs text-muted-foreground ml-1">({rating.toFixed(1)})</span>
+      </div>
+    );
+  };
 
   return (
     <motion.div 
@@ -59,11 +80,8 @@ export function ItemCard({ item }: ItemCardProps) {
           <h3 className="font-serif text-lg font-bold text-foreground leading-tight">{item.title}</h3>
           <span className="font-semibold text-primary">₹{item.price.toFixed(2)}</span>
         </div>
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-sm text-yellow-500">
-            {'⭐'.repeat(Math.round(starRating))}
-          </span>
-          <span className="text-xs text-muted-foreground">({starRating.toFixed(1)}/5)</span>
+        <div className="mb-3">
+          {renderStars(starRating)}
         </div>
         <p className="text-muted-foreground text-sm line-clamp-2">{item.description}</p>
       </div>

@@ -63,6 +63,20 @@
 
             <div className="max-h-[60vh] overflow-y-auto -mx-1 pr-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* All Items Button */}
+                <Button
+                  onClick={() => onSelect('all')}
+                  variant={activeCategory === 'all' ? "default" : "secondary"}
+                  className={`justify-start px-3 py-3 rounded-xl ${
+                    activeCategory === 'all'
+                      ? "bg-blue-600 text-white hover:bg-blue-700"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
+                  aria-pressed={activeCategory === 'all'}
+                >
+                  <span className="truncate font-medium">All Items</span>
+                </Button>
+                
                 {filtered.map((cat) => {
                   const Icon = cat.icon || null;
                   const isActive = activeCategory === cat.id;

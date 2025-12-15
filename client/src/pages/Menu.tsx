@@ -48,6 +48,111 @@ export default function Menu() {
     return matchesCategory && matchesSubCategory;
   });
 
+  // SEO: Generate page title and description based on filters
+  const getPageTitle = () => {
+    const activecat = categories.find(c => c.id === activeCategory);
+    if (activeCategory === 'all') return 'Our Menu | Peelo Juice';
+    return `${activecat?.title || 'Menu'} | Peelo Juice`;
+  };
+
+  const getPageDescription = () => {
+    const activecat = categories.find(c => c.id === activeCategory);
+    if (activeCategory === 'all') {
+      return `Discover our carefully curated selection of ${items.length} delicious juices and creams. Fresh, healthy beverages crafted with premium ingredients.`;
+    }
+    return `Explore our ${activecat?.title || 'Menu'} collection. Fresh, healthy beverages at Peelo Juice. ${filteredItems.length} items available.`;
+  };
+
+  // Structured data for Schema.org
+  const schemaData = {
+    '@context': 'https://schema.org',
+    '@type': 'Restaurant',
+    name: 'Peelo Juice',
+    url: window.location.origin,
+    description: 'Fresh juice and cream shop serving healthy beverages',
+    hasMenu: {
+      '@type': 'Menu',
+      hasMenuSection: categories.map(cat => ({
+        '@type': 'MenuSection',
+        name: cat.title,
+        itemListElement: items
+          .filter(item => item.categoryId === cat.id)
+          .map(item => ({
+            '@type': 'MenuItem',
+            name: item.title,
+            description: item.description,
+            offers: {
+              '@type': 'Offer',
+              price: item.price.toFixed(2),
+              priceCurrency: 'INR'
+            },
+            image: item.image,
+            aggregateRating: item.stars ? {
+              '@type': 'AggregateRating',
+              ratingValue: item.stars,
+              bestRating: '5',
+              worstRating: '0'
+            } : undefined
+          }))
+      }))
+    }
+  };
+
+  // Update meta tags on component mount and when filters change
+  useEffect(() => {
+    const title = getPageTitle();
+    const description = getPageDescription();
+    
+    // Update document title
+    document.title = title;
+    
+    // Update or create meta tags
+    const updateMetaTag = (name: string, content: string) => {
+      let tag = document.querySelector(`meta[name="${name}"], meta[property="${name}"]`);
+      if (!tag) {
+        tag = document.createElement('meta');
+        if (name.startsWith('og:') || name.startsWith('twitter:')) {
+          tag.setAttribute('property', name);
+        } else {
+          tag.setAttribute('name', name);
+        }
+        document.head.appendChild(tag);
+      }
+      tag.setAttribute('content', content);
+    };
+
+    updateMetaTag('description', description);
+    updateMetaTag('keywords', 'juice, fresh juice, healthy drinks, peelo juice, beverages, cream, smoothie, milkshake');
+    updateMetaTag('og:title', title);
+    updateMetaTag('og:description', description);
+    updateMetaTag('og:type', 'website');
+    updateMetaTag('og:url', window.location.href);
+    updateMetaTag('og:image', filteredItems[0]?.image || `${window.location.origin}/og-image.jpg`);
+    updateMetaTag('twitter:card', 'summary_large_image');
+    updateMetaTag('twitter:title', title);
+    updateMetaTag('twitter:description', description);
+    updateMetaTag('twitter:image', filteredItems[0]?.image || `${window.location.origin}/og-image.jpg`);
+    updateMetaTag('theme-color', '#ffffff');
+
+    // Update canonical link
+    let canonicalLink = document.querySelector('link[rel="canonical"]');
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.setAttribute('href', window.location.href);
+
+    // Update structured data
+    let schemaScript = document.querySelector('script[type="application/ld+json"]');
+    if (!schemaScript) {
+      schemaScript = document.createElement('script');
+      schemaScript.setAttribute('type', 'application/ld+json');
+      document.head.appendChild(schemaScript);
+    }
+    schemaScript.textContent = JSON.stringify(schemaData);
+  }, [activeCategory, activeSubCategory, filteredItems, getPageTitle, getPageDescription, schemaData]);
+
   return (
     <div className="min-h-screen bg-background pt-24">
       <Navbar />
@@ -56,7 +161,7 @@ export default function Menu() {
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">Our Menu</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Discover our carefully curated selection of {items.length} dishes and drinks.
+            Discover our carefully curated selection of {items.length} Juices and Creams. Fresh, healthy beverages crafted with premium ingredients.
           </p>
         </div>
 
@@ -72,6 +177,7 @@ export default function Menu() {
                     ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25" 
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 )}
+                aria-label="View all menu items"
               >
                 All Categories
               </button>
@@ -85,6 +191,7 @@ export default function Menu() {
                       ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25" 
                       : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                   )}
+                  aria-label={`View ${cat.title} menu items`}
                 >
                   {cat.title}
                 </button>
@@ -115,6 +222,7 @@ export default function Menu() {
                       ? "border-primary text-primary bg-primary/5" 
                       : "border-transparent text-muted-foreground hover:text-foreground"
                   )}
+                  aria-label="View all items in category"
                 >
                   All Items
                 </button>
@@ -128,6 +236,7 @@ export default function Menu() {
                         ? "border-primary text-primary bg-primary/5" 
                         : "border-transparent text-muted-foreground hover:text-foreground"
                     )}
+                    aria-label={`View ${sub.title} items`}
                   >
                     {sub.title}
                   </button>
