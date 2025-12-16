@@ -4,8 +4,9 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { DollarSign, TrendingUp, Users, ShoppingCart } from 'lucide-react';
 import axios from 'axios';
 import { useOrderUpdates, useDashboardSocket } from '@/hooks/useSocket';
+import { API_BASE_URL } from '@/lib/utils';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = API_BASE_URL;
 const COLORS = ['#0ea5e9', '#06b6d4', '#14b8a6', '#f59e0b', '#ef4444'];
 
 interface OrderAnalytics {

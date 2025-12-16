@@ -13,6 +13,7 @@ import { ShoppingBag, Phone, MapPin, User, CreditCard, CheckCircle, AlertCircle,
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import axios from 'axios';
+import { API_BASE_URL } from '@/lib/utils';
 
 const checkoutSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -26,7 +27,7 @@ const checkoutSchema = z.object({
 
 type CheckoutForm = z.infer<typeof checkoutSchema>;
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = API_BASE_URL;
 
 export default function Checkout() {
   const { items, total, clearCart } = useCart();

@@ -3,6 +3,8 @@ import { persist } from 'zustand/middleware';
 import { toast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export interface Category {
   id: string;
   title: string;
@@ -69,13 +71,13 @@ export const useMenu = create<MenuState>()(
 
           // Try to get auth token if available (for admin or authenticated users)
           const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
-          const headers = token ? { Authorization: `Bearer ${token}` } : {};
+          const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
           console.log('fetchMenu called, token available:', !!token);
 
           // Primary: Try /api/menu/organized endpoint (best for public users)
           try {
-            const organizedUrl = `http://localhost:5000/api/menu/organized`;
+            const organizedUrl = `${API_BASE_URL}/api/menu/organized`;
             console.log('Trying organized endpoint:', organizedUrl);
             
             const organizedResponse = await fetch(organizedUrl, { headers }).then(r => r.json());
@@ -132,7 +134,7 @@ export const useMenu = create<MenuState>()(
           if (items.length === 0) {
             console.log('No items from organized, trying /api/menu/dishes...');
             try {
-              const dishesUrl = `http://localhost:5000/api/menu/dishes?limit=1000`;
+              const dishesUrl = `${API_BASE_URL}/api/menu/dishes?limit=1000`;
               const dishesResponse = await fetch(dishesUrl, { headers }).then(r => r.json());
               console.log('Dishes response:', dishesResponse);
 
@@ -185,8 +187,8 @@ export const useMenu = create<MenuState>()(
                   items.push(item);
                 });
 
-                categories.push(...categoryMap.values());
-                subCategories.push(...subCategoryMap.values());
+                categories.push(...Array.from(categoryMap.values()));
+                subCategories.push(...Array.from(subCategoryMap.values()));
               }
             } catch (dishesError) {
               console.error('Dishes endpoint also failed:', dishesError);
@@ -197,7 +199,7 @@ export const useMenu = create<MenuState>()(
           if (items.length === 0) {
             console.log('No items from dishes endpoint, trying standalone...');
             try {
-              const standaloneUrl = `http://localhost:5000/api/menu/dishes/standalone/all?limit=1000`;
+              const standaloneUrl = `${API_BASE_URL}/api/menu/dishes/standalone/all?limit=1000`;
               const standaloneResponse = await fetch(standaloneUrl, { headers }).then(r => r.json());
               console.log('Standalone response:', standaloneResponse);
 
@@ -232,7 +234,7 @@ export const useMenu = create<MenuState>()(
                   items.push(item);
                 });
 
-                categories.push(...categoryMap.values());
+                categories.push(...Array.from(categoryMap.values()));
               }
             } catch (standaloneError) {
               console.error('Standalone failed:', standaloneError);

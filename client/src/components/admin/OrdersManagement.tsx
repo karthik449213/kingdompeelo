@@ -8,8 +8,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Eye, Loader2, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { useOrderUpdates, useDashboardSocket, playNotificationSound } from '@/hooks/useSocket';
+import { API_BASE_URL } from '@/lib/utils';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = API_BASE_URL;
 
 interface OrderItem {
   dishName: string;

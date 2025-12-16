@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { API_BASE_URL } from '@/lib/utils';
 
-const WS_URL = import.meta.env.VITE_WS_URL || "http://localhost:5000";
+const WS_URL = import.meta.env.VITE_WS_URL || API_BASE_URL;
 
 let socket: Socket | null = null;
 
