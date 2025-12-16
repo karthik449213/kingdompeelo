@@ -32,7 +32,7 @@ export function Navbar() {
     >
       <div className="container mx-auto px-4 flex items-center justify-between">
         <Link href="/" className={cn("text-2xl md:text-3xl font-serif font-extrabold tracking-tight lowercase", isScrolled || !isHome ? "text-foreground" : "text-white")}>
-          peel <span className={cn("text-amber-500")}>O</span>{'  '}juice
+          Peel <span className={cn("text-amber-500")}>O</span>{'  '}Juice
         </Link>
 
         <div className="hidden md:flex items-center gap-8">

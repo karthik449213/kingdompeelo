@@ -12,6 +12,7 @@ interface ItemCardProps {
 export function ItemCard({ item }: ItemCardProps) {
   const addToCart = useCart((state) => state.addToCart);
   const [isHovered, setIsHovered] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
   
   // Default to available if undefined
   const isAvailable = item.available !== false;
@@ -36,6 +37,14 @@ export function ItemCard({ item }: ItemCardProps) {
         <span className="text-xs text-muted-foreground ml-1">({rating.toFixed(1)})</span>
       </div>
     );
+  };
+
+  const handleAddToCart = () => {
+    if (isAvailable) {
+      addToCart(item);
+      setShowNotification(true);
+      setTimeout(() => setShowNotification(false), 2000);
+    }
   };
 
   return (
@@ -66,11 +75,12 @@ export function ItemCard({ item }: ItemCardProps) {
           isHovered && isAvailable ? 'opacity-100' : 'opacity-0'
         }`}>
           <Button 
-            onClick={() => isAvailable && addToCart(item)}
+            onClick={handleAddToCart}
             disabled={!isAvailable}
             className="bg-white text-black hover:bg-white/90 rounded-full font-medium transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300"
           >
-            Add to Cart
+            <Plus className="h-4 w-4 mr-2" />
+            Order Now
           </Button>
         </div>
       </div>
@@ -83,7 +93,29 @@ export function ItemCard({ item }: ItemCardProps) {
         <div className="mb-3">
           {renderStars(starRating)}
         </div>
-        <p className="text-muted-foreground text-sm line-clamp-2">{item.description}</p>
+        <p className="text-muted-foreground text-sm line-clamp-2 mb-4">{item.description}</p>
+        
+        {/* Add to Cart Button Below Description */}
+        <Button 
+          onClick={handleAddToCart}
+          disabled={!isAvailable}
+          className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 rounded-lg transition-all duration-200"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add to Cart
+        </Button>
+
+        {/* Success Notification */}
+        {showNotification && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="mt-2 bg-green-100 text-green-800 text-sm p-2 rounded-lg text-center"
+          >
+            Added to cart! ✓
+          </motion.div>
+        )}
       </div>
     </motion.div>
   );

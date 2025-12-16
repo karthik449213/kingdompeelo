@@ -9,8 +9,9 @@ import { Dialog, DialogContent,DialogDescription, DialogHeader, DialogTitle, Dia
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Navbar } from '@/components/layout/Navbar';
-import { Plus, Trash2, Edit2, Search, ArrowUp, Star } from 'lucide-react';
+import { Plus, Trash2, Edit2, Search, ArrowUp, Star, Eye, EyeOff } from 'lucide-react';
 import { API_URL } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface MenuItem {
   _id: string;
@@ -22,6 +23,7 @@ interface MenuItem {
   image?: string;
   available?: boolean;
   stars?: number;
+  hidden?: boolean;
 }
 
 interface Category {
@@ -37,6 +39,7 @@ interface SubCategory {
 
 export default function AdminMenuManagement() {
   const { items } = useMenu();
+  const { toast } = useToast();
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
@@ -56,6 +59,7 @@ export default function AdminMenuManagement() {
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [token, setToken] = useState<string>('');
+  const [hiddenItems, setHiddenItems] = useState<MenuItem[]>([]);
 
   // Load data on mount
   useEffect(() => {
@@ -78,6 +82,20 @@ export default function AdminMenuManagement() {
       setMenu(Array.isArray(data) ? data : Array.isArray(data?.dishes) ? data.dishes : []);
     } catch (err) {
       console.error('Failed to load menu:', err);
+    }
+  }, [token]);
+
+  // Load hidden dishes
+  const loadHiddenItems = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/menu/admin/hidden-dishes`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setHiddenItems(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to load hidden items:', err);
     }
   }, [token]);
 
@@ -109,8 +127,9 @@ export default function AdminMenuManagement() {
       loadMenu();
       loadCategories();
       loadSubCategories();
+      loadHiddenItems();
     }
-  }, [token, loadMenu, loadCategories, loadSubCategories]);
+  }, [token, loadMenu, loadCategories, loadSubCategories, loadHiddenItems]);
 
   // Handle scroll to top visibility
   useEffect(() => {
@@ -159,7 +178,11 @@ export default function AdminMenuManagement() {
 
   const handleAdd = async () => {
     if (!form.name || !form.price || !form.category || !form.subCategory || !form.description || !file) {
-      alert('Please fill in all required fields including category, subcategory, and an image');
+      toast({
+        title: 'Missing Fields',
+        description: 'Please fill in all required fields including category, subcategory, and an image',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -188,7 +211,11 @@ export default function AdminMenuManagement() {
       loadMenu();
     } catch (err: any) {
       console.error('Error adding dish:', err);
-      alert('Error adding dish: ' + (err.message || 'Unknown error'));
+      toast({
+        title: 'Error',
+        description: 'Failed to add dish: ' + (err.message || 'Unknown error'),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -201,8 +228,28 @@ export default function AdminMenuManagement() {
       });
       if (!res.ok) throw new Error('Failed to delete');
       loadMenu();
+      loadHiddenItems();
     } catch (err: any) {
       console.error('Error deleting dish:', err);
+    }
+  };
+
+  const handleToggleVisibility = async (id: string) => {
+    try {
+      const res = await fetch(`${API_URL}/menu/dishes/${id}/toggle-visibility`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to toggle visibility');
+      loadMenu();
+      loadHiddenItems();
+    } catch (err: any) {
+      console.error('Error toggling visibility:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to toggle visibility: ' + (err.message || 'Unknown error'),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -223,7 +270,11 @@ export default function AdminMenuManagement() {
 
   const handleUpdate = async () => {
     if (!editingId || !form.name || !form.price || !form.category || !form.subCategory || !form.description) {
-      alert('Please fill in all required fields including category and subcategory');
+      toast({
+        title: 'Missing Fields',
+        description: 'Please fill in all required fields including category and subcategory',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -252,7 +303,11 @@ export default function AdminMenuManagement() {
       loadMenu();
     } catch (err: any) {
       console.error('Error updating dish:', err);
-      alert('Error updating dish: ' + (err.message || 'Unknown error'));
+      toast({
+        title: 'Error',
+        description: 'Failed to update dish: ' + (err.message || 'Unknown error'),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -289,7 +344,13 @@ export default function AdminMenuManagement() {
             <h1 className="text-2xl sm:text-3xl font-serif font-bold">Dish Management</h1>
             <p className="text-muted-foreground text-sm sm:text-base">Add, edit, and delete dishes</p>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+            setIsAddDialogOpen(open);
+            if (!open) {
+              // Reset form when dialog closes
+              cancelEdit();
+            }
+          }}>
             <DialogTrigger asChild>
               <Button
                 className="gap-2"
@@ -334,11 +395,13 @@ export default function AdminMenuManagement() {
 
                 <div className="space-y-2">
                   <Label htmlFor="category">Category *</Label>
-                  <Select value={form.category} onValueChange={(val) => {
+                  <Select value={form.category || ''} onValueChange={(val) => {
                     setForm({ ...form, category: val, subCategory: '' });
                   }}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
+                      <SelectValue placeholder="Select category">
+                        {form.category ? categories.find(c => c._id === form.category)?.name : 'Select category'}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((c) => (
@@ -354,12 +417,14 @@ export default function AdminMenuManagement() {
                   <Label htmlFor="subCategory">SubCategory *</Label>
                   <div className="flex gap-2 items-center">
                     <Select
-                      value={form.subCategory}
+                      value={form.subCategory || ''}
                       onValueChange={(val) => setForm({ ...form, subCategory: val })}
                       disabled={!form.category}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select subcategory" />
+                        <SelectValue placeholder="Select subcategory">
+                          {form.subCategory ? getAvailableSubCategories().find(sc => sc._id === form.subCategory)?.name : 'Select subcategory'}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {getAvailableSubCategories().map((sc) => (
@@ -483,7 +548,7 @@ export default function AdminMenuManagement() {
                         <img
                           src={item.image}
                           alt={item.name}
-                          className="w-16 h-12 sm:w-20 sm:h-16 object-cover rounded flex-shrink-0"
+                          className="w-16 h-12 sm:w-20 sm:h-16 object-cover rounded shrink-0"
                         />
                       )}
                       <div className="flex-1 min-w-0">
@@ -522,7 +587,17 @@ export default function AdminMenuManagement() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2 w-full sm:w-auto flex-shrink-0">
+                    <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        title={item.hidden ? "Show item" : "Hide item"}
+                        className="flex-1 sm:flex-none"
+                        onClick={() => handleToggleVisibility(item._id)}
+                      >
+                        {item.hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        <span className="sm:hidden ml-1">{item.hidden ? 'Show' : 'Hide'}</span>
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -551,6 +626,50 @@ export default function AdminMenuManagement() {
             )}
           </CardContent>
         </Card>
+
+        {/* Hidden Items Section */}
+        {hiddenItems.length > 0 && (
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle>Hidden Items ({hiddenItems.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {hiddenItems.map((item) => (
+                  <div
+                    key={item._id}
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg hover:bg-secondary/50 transition gap-4 opacity-60"
+                  >
+                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                      {item.image && (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-16 h-12 sm:w-20 sm:h-16 object-cover rounded shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-sm sm:text-base truncate">{item.name}</h3>
+                        <p className="text-sm text-muted-foreground">₹{item.price}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 sm:flex-none gap-2"
+                        onClick={() => handleToggleVisibility(item._id)}
+                      >
+                        <Eye className="h-4 w-4" /> Restore
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Scroll to Top Button */}

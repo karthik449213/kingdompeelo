@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
+import { ArrowRight } from 'lucide-react';
 import type { Category } from '@/store/useMenu';
 
 interface CategoryCardProps {
@@ -23,11 +24,16 @@ export function CategoryCard({ category, index }: CategoryCardProps) {
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
         
+        {/* Arrow Mark */}
+        <div className="absolute top-4 right-4 bg-primary/80 hover:bg-primary p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <ArrowRight className="h-5 w-5 text-white" />
+        </div>
+        
         <div className="absolute bottom-0 left-0 w-full p-6 md:p-8 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
           <h3 className="text-2xl md:text-3xl font-serif text-white font-bold mb-2">{category.title}</h3>
           <div className="h-1 w-12 bg-primary rounded-full group-hover:w-20 transition-all duration-300" />
           <p className="text-white/80 text-sm mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-4 group-hover:translate-y-0">
-            Explore {category.title} Collection &rarr;
+            Explore {category.title} Collection
           </p>
         </div>
       </motion.div>

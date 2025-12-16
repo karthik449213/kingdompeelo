@@ -1,0 +1,18 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Specific rules for search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Disallow sensitive paths
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+
+# Sitemap location
+Sitemap: https://peelojuice.com/sitemap.xml

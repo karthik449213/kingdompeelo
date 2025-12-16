@@ -2,7 +2,7 @@ import { Navbar } from '@/components/layout/Navbar';
 // import { stats } from '@/lib/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, LineChart, Line } from 'recharts';
-import { DollarSign, ShoppingBag, Users, Utensils, Plus, Trash2, Edit2, LogOut } from 'lucide-react';
+import { DollarSign, ShoppingBag, Users, Utensils, Plus, Trash2, Edit2, LogOut, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { API_BASE_URL, API_URL } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 // Types for fetched data
 type Item = {
@@ -27,6 +28,7 @@ type Item = {
   category?: string;
   categoryId?: string;
   image: string;
+  hidden?: boolean;
 };
 
 type Category = {
@@ -35,6 +37,7 @@ type Category = {
   name?: string;
   title?: string;
   image?: string;
+  hidden?: boolean;
   category?: string | { _id: string; name: string }; // For subcategories to store parent category
 };
 
@@ -85,6 +88,7 @@ type CategoryFormValues = z.infer<typeof categorySchema>;
 type SubCategoryFormValues = z.infer<typeof subCategorySchema>;
 
 export default function Dashboard() {
+  const { toast } = useToast();
   
   const [items, setItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -100,6 +104,11 @@ export default function Dashboard() {
   const [message, setMessage] = useState('');
   const [chartRevenue, setChartRevenue] = useState(revenueData);
   const [chartOrders, setChartOrders] = useState(orderData);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [weekAnalytics, setWeekAnalytics] = useState<any>(null);
+  const [hiddenItems, setHiddenItems] = useState<Item[]>([]);
+  const [hiddenCategories, setHiddenCategories] = useState<Category[]>([]);
+  const [hiddenSubCategories, setHiddenSubCategories] = useState<Category[]>([]);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ItemFormValues>({
@@ -140,11 +149,72 @@ export default function Dashboard() {
       }
     };
 
+    const fetchAnalytics = async () => {
+      try {
+        const [todayRes, weekRes] = await Promise.all([
+          fetch(`${API_URL}/analytics/today`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch(`${API_URL}/analytics/week`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+
+        if (todayRes.ok) {
+          const todayData = await todayRes.json();
+          setAnalyticsData(todayData.analytics);
+          
+          // Update stats with real analytics data
+          setStats(prev => [
+            { 
+              value: `₹${todayData.analytics?.totalRevenue?.toFixed(2) || 0}`, 
+              change: `₹${todayData.analytics?.totalRevenue?.toFixed(2) || 0} today` 
+            },
+            { 
+              value: todayData.analytics?.totalOrders || 0, 
+              change: `${todayData.analytics?.successfulOrders || 0} successful` 
+            },
+            { 
+              value: `₹${todayData.analytics?.averageOrderValue?.toFixed(2) || 0}`, 
+              change: 'average per order' 
+            }
+          ]);
+        }
+
+        if (weekRes.ok) {
+          const weekData = await weekRes.json();
+          setWeekAnalytics(weekData.analytics);
+          
+          // Update revenue chart with weekly data
+          if (weekData.analytics?.daily && Array.isArray(weekData.analytics.daily)) {
+            const weekChartData = weekData.analytics.daily.map((day: any, idx: number) => ({
+              name: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx % 7],
+              total: day.totalRevenue || 0
+            }));
+            setChartRevenue(weekChartData);
+            
+            // Update orders chart with weekly data
+            const weekOrderData = weekData.analytics.daily.map((day: any, idx: number) => ({
+              time: ['10am', '12pm', '2pm', '4pm', '6pm', '8pm', '10pm'][idx % 7],
+              orders: day.totalOrders || 0
+            }));
+            setChartOrders(weekOrderData);
+          }
+        }
+      } catch (err) {
+        console.error('Analytics fetch error:', err);
+      }
+    };
+
     const fetchDishes = async () => {
       try {
+        const token = localStorage.getItem('token');
         // Use the API route that returns dishes (menuRoutes exposes /api/menu/dishes)
         // Add limit=1000 to get all dishes instead of just 20
-        const res = await fetch(`${API_URL}/menu/dishes?limit=1000`);
+        // Include auth token so we get ALL items (including hidden) for admin
+        const res = await fetch(`${API_URL}/menu/dishes?limit=1000`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
         if (!res.ok) {
           console.error('Failed to fetch dishes:', res.status);
           return;
@@ -162,7 +232,8 @@ export default function Dashboard() {
           description: dish.description,
           // Ensure we extract subcategory id whether populated or not
           categoryId: dish.subCategory && typeof dish.subCategory === 'object' ? dish.subCategory._id : dish.subCategory,
-          image: dish.image
+          image: dish.image,
+          hidden: dish.hidden || false
         })) : []);
       } catch (err) {
         console.error('Error fetching dishes:', err);
@@ -171,8 +242,12 @@ export default function Dashboard() {
 
     const fetchCategories = async () => {
       try {
+        const token = localStorage.getItem('token');
         // Subcategories are exposed at /api/menu/subcategories
-        const res = await fetch(`${API_URL}/menu/subcategories`);
+        // Include auth token to get all subcategories (including hidden)
+        const res = await fetch(`${API_URL}/menu/subcategories`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
         if (!res.ok) {
           console.error('Failed to fetch subcategories:', res.status);
           return;
@@ -185,7 +260,8 @@ export default function Dashboard() {
           name: sub.name,
           title: sub.name,
           image: sub.image,
-          category: sub.category // Store parent category
+          category: sub.category, // Store parent category
+          hidden: sub.hidden || false
         })) : []);
       } catch (err) {
         console.error('SubCategories Error:', err);
@@ -194,7 +270,11 @@ export default function Dashboard() {
 
     const fetchMainCategories = async () => {
       try {
-        const res = await fetch(`${API_URL}/menu/categories`);
+        const token = localStorage.getItem('token');
+        // Include auth token to get all categories (including hidden)
+        const res = await fetch(`${API_URL}/menu/categories`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
         if (!res.ok) {
           console.error('Failed to fetch categories:', res.status);
           return;
@@ -206,22 +286,105 @@ export default function Dashboard() {
           id: cat._id,
           name: cat.name,
           title: cat.name,
-          image: cat.image
+          image: cat.image,
+          hidden: cat.hidden || false
         })) : []);
       } catch (err) {
         console.error('Categories Error:', err);
       }
     };
 
+    const fetchHiddenDishes = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_URL}/menu/admin/hidden-dishes`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) {
+          console.error('Failed to fetch hidden dishes:', res.status);
+          return;
+        }
+        const data = await res.json();
+        setHiddenItems(Array.isArray(data) ? data.map(dish => ({
+          _id: dish._id,
+          id: dish._id,
+          title: dish.name,
+          price: dish.price,
+          description: dish.description,
+          categoryId: dish.subCategory && typeof dish.subCategory === 'object' ? dish.subCategory._id : dish.subCategory,
+          image: dish.image,
+          hidden: true
+        })) : []);
+      } catch (err) {
+        console.error('Error fetching hidden dishes:', err);
+      }
+    };
+
+    const fetchHiddenCategories = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_URL}/menu/admin/hidden-categories`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) {
+          console.error('Failed to fetch hidden categories:', res.status);
+          return;
+        }
+        const data = await res.json();
+        setHiddenCategories(Array.isArray(data) ? data.map(cat => ({
+          _id: cat._id,
+          id: cat._id,
+          name: cat.name,
+          title: cat.name,
+          image: cat.image,
+          hidden: true
+        })) : []);
+      } catch (err) {
+        console.error('Error fetching hidden categories:', err);
+      }
+    };
+
+    const fetchHiddenSubCategories = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_URL}/menu/admin/hidden-subcategories`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) {
+          console.error('Failed to fetch hidden subcategories:', res.status);
+          return;
+        }
+        const data = await res.json();
+        setHiddenSubCategories(Array.isArray(data) ? data.map(sub => ({
+          _id: sub._id,
+          id: sub._id,
+          name: sub.name,
+          title: sub.name,
+          image: sub.image,
+          category: sub.category,
+          hidden: true
+        })) : []);
+      } catch (err) {
+        console.error('Error fetching hidden subcategories:', err);
+      }
+    };
+
     // Fetch initial data
     fetchDashboardData();
+    fetchAnalytics();
     fetchDishes();
     fetchCategories();
     fetchMainCategories();
+    fetchHiddenDishes();
+    fetchHiddenCategories();
+    fetchHiddenSubCategories();
 
-    // Real-time polling for charts (every 30 seconds)
+    // Real-time polling for analytics (every 30 seconds)
     pollingIntervalRef.current = setInterval(() => {
-      updateChartData();
+      fetchAnalytics();
     }, 30000);
 
     return () => {
@@ -230,21 +393,6 @@ export default function Dashboard() {
       }
     };
   }, []);
-
-  // Function to update chart data with simulated real-time data
-  const updateChartData = () => {
-    // Simulate revenue data with slight variations
-    setChartRevenue(prev => prev.map(item => ({
-      ...item,
-      total: Math.max(500, item.total + Math.floor((Math.random() - 0.5) * 1000))
-    })));
-
-    // Simulate order data with slight variations
-    setChartOrders(prev => prev.map(item => ({
-      ...item,
-      orders: Math.max(1, item.orders + Math.floor((Math.random() - 0.5) * 10))
-    })));
-  };
 
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
@@ -259,14 +407,22 @@ export default function Dashboard() {
       try {
         // Validate subcategory is provided
         if (!data.subCategoryId) {
-          alert('Subcategory is required');
+          toast({
+            title: 'Missing Field',
+            description: 'Subcategory is required',
+            variant: 'destructive',
+          });
           return;
         }
 
         // Validate image is provided (required for new items, optional for editing)
         const fileList = (data as any).image as FileList | undefined;
         if (!editingItem && (!fileList || fileList.length === 0)) {
-          alert('Please upload an image for the dish');
+          toast({
+            title: 'Missing Image',
+            description: 'Please upload an image for the dish',
+            variant: 'destructive',
+          });
           return;
         }
 
@@ -343,7 +499,14 @@ export default function Dashboard() {
   // Delete item from server then update local state
   const handleDelete = async (itemId: string) => {
     const token = localStorage.getItem('token');
-    if (!token) return alert('Not authenticated');
+    if (!token) {
+      toast({
+        title: 'Not Authenticated',
+        description: 'Please log in to perform this action',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     if (!confirm('Delete this item permanently?')) return;
 
@@ -355,13 +518,120 @@ export default function Dashboard() {
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         console.error('Delete failed', err);
-        return alert('Failed to delete item');
+        toast({
+          title: 'Error',
+          description: 'Failed to delete item',
+          variant: 'destructive',
+        });
       }
       // Remove locally
       setItems(prev => prev.filter(i => (i._id || i.id) !== itemId));
     } catch (e) {
       console.error('Delete Error:', e);
-      alert('Delete failed');
+      toast({
+        title: 'Error',
+        description: 'Delete operation failed',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Toggle item visibility
+  const handleToggleItemVisibility = async (itemId: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return alert('Not authenticated');
+
+    try {
+      const res = await fetch(`${API_URL}/menu/dishes/${itemId}/toggle-visibility`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('Toggle visibility failed', err);
+        return alert('Failed to toggle visibility');
+      }
+      const data = await res.json();
+      // Update local state to reflect the change
+      setItems(prev => prev.map(i => 
+        ((i._id || i.id) === itemId) ? { ...i, hidden: data.hidden } : i
+      ));
+      // Also update hidden items list
+      if (data.hidden) {
+        // Item was hidden, add it to hidden list
+        const hiddenItem = items.find(i => (i._id || i.id) === itemId);
+        if (hiddenItem) {
+          setHiddenItems(prev => [{ ...hiddenItem, hidden: true }, ...prev]);
+        }
+      } else {
+        // Item was shown, remove from hidden list
+        setHiddenItems(prev => prev.filter(i => (i._id || i.id) !== itemId));
+      }
+    } catch (e) {
+      console.error('Toggle Error:', e);
+      alert('Failed to toggle visibility');
+    }
+  };
+
+  // Toggle category visibility
+  const handleToggleCategoryVisibility = async (categoryId: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return alert('Not authenticated');
+
+    try {
+      const res = await fetch(`${API_URL}/menu/categories/${categoryId}/toggle-visibility`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('Toggle visibility failed', err);
+        return alert('Failed to toggle visibility');
+      }
+      const data = await res.json();
+      // Update hidden categories list
+      if (data.hidden) {
+        const category = mainCategories.find(c => (c._id || c.id) === categoryId);
+        if (category) {
+          setHiddenCategories(prev => [{ ...category, hidden: true }, ...prev]);
+        }
+      } else {
+        setHiddenCategories(prev => prev.filter(c => (c._id || c.id) !== categoryId));
+      }
+    } catch (e) {
+      console.error('Toggle Error:', e);
+      alert('Failed to toggle visibility');
+    }
+  };
+
+  // Toggle subcategory visibility
+  const handleToggleSubCategoryVisibility = async (subCategoryId: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return alert('Not authenticated');
+
+    try {
+      const res = await fetch(`${API_URL}/menu/subcategories/${subCategoryId}/toggle-visibility`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('Toggle visibility failed', err);
+        return alert('Failed to toggle visibility');
+      }
+      const data = await res.json();
+      // Update hidden subcategories list
+      if (data.hidden) {
+        const subCategory = categories.find(c => (c._id || c.id) === subCategoryId);
+        if (subCategory) {
+          setHiddenSubCategories(prev => [{ ...subCategory, hidden: true }, ...prev]);
+        }
+      } else {
+        setHiddenSubCategories(prev => prev.filter(c => (c._id || c.id) !== subCategoryId));
+      }
+    } catch (e) {
+      console.error('Toggle Error:', e);
+      alert('Failed to toggle visibility');
     }
   };
 
@@ -376,7 +646,11 @@ export default function Dashboard() {
     // Validate image
     const fileList = (data as any).image as FileList | undefined;
     if (!fileList || fileList.length === 0) {
-      alert('Please upload an image for the category');
+      toast({
+        title: 'Missing Image',
+        description: 'Please upload an image for the category',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -398,7 +672,11 @@ export default function Dashboard() {
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: 'No response body' }));
         console.error('Save category failed:', err);
-        alert('Failed to save category: ' + (err.message || 'Unknown error'));
+        toast({
+          title: 'Error',
+          description: 'Failed to save category: ' + (err.message || 'Unknown error'),
+          variant: 'destructive',
+        });
         return;
       }
 
@@ -416,10 +694,17 @@ export default function Dashboard() {
       setMainCategories(prev => [newCategory, ...prev]);
       setIsAddCategoryDialogOpen(false);
       resetCategory();
-      alert('Category added successfully!');
+      toast({
+        title: 'Success',
+        description: 'Category added successfully!',
+      });
     } catch (e) {
       console.error('Submit Error:', e);
-      alert('Failed to save category: ' + (e instanceof Error ? e.message : 'Unknown error'));
+      toast({
+        title: 'Error',
+        description: 'Failed to save category: ' + (e instanceof Error ? e.message : 'Unknown error'),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -434,12 +719,20 @@ export default function Dashboard() {
     // Validate image
     const fileList = (data as any).image as FileList | undefined;
     if (!fileList || fileList.length === 0) {
-      alert('Please upload an image for the subcategory');
+      toast({
+        title: 'Missing Image',
+        description: 'Please upload an image for the subcategory',
+        variant: 'destructive',
+      });
       return;
     }
 
     if (!data.categoryId) {
-      alert('Please select a category');
+      toast({
+        title: 'Missing Field',
+        description: 'Please select a category',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -480,7 +773,10 @@ export default function Dashboard() {
       setCategories(prev => [newSubCategory, ...prev]);
       setIsAddSubCategoryDialogOpen(false);
       resetSubCategory();
-      alert('Subcategory added successfully!');
+      toast({
+        title: 'Success',
+        description: 'Subcategory added successfully!',
+      });
     } catch (e) {
       console.error('Submit Error:', e);
       alert('Failed to save subcategory: ' + (e instanceof Error ? e.message : 'Unknown error'));
@@ -589,7 +885,14 @@ export default function Dashboard() {
             
 
              {/* Add Item Dialog */}
-             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+             <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+               setIsAddDialogOpen(open);
+               if (!open) {
+                 // Reset form when dialog closes
+                 setEditingItem(null);
+                 reset();
+               }
+             }}>
                <DialogTrigger asChild>
                  <Button className="gap-2" onClick={() => { setEditingItem(null); reset(); }}><Plus className="h-4 w-4" /> Add Item</Button>
                </DialogTrigger>
@@ -615,14 +918,21 @@ export default function Dashboard() {
                    
                    <div className="space-y-2">
                      <Label htmlFor="subcategory">Subcategory</Label>
-                     <Select onValueChange={(val) => setValue("subCategoryId", val)} defaultValue="">
+                     <Select 
+                       value={editingItem ? (editingItem.categoryId || editingItem._id) : ""} 
+                       onValueChange={(val) => setValue("subCategoryId", val)}
+                     >
                        <SelectTrigger>
                          <SelectValue placeholder="Select subcategory" />
                        </SelectTrigger>
                        <SelectContent>
-                         {categories.map(cat => (
-                           <SelectItem key={cat._id || cat.id} value={cat._id || cat.id || ''}>{cat.name || cat.title}</SelectItem>
-                         ))}
+                         {categories.length > 0 ? (
+                           categories.map(cat => (
+                             <SelectItem key={cat._id || cat.id} value={cat._id || cat.id || ''}>{cat.name || cat.title}</SelectItem>
+                           ))
+                         ) : (
+                           <div className="p-2 text-sm text-muted-foreground">No subcategories available</div>
+                         )}
                        </SelectContent>
                      </Select>
                      {errors.subCategoryId && <p className="text-destructive text-xs">{errors.subCategoryId.message}</p>}
@@ -655,17 +965,39 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium">Today's Revenue</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats[0].value}</div>
-              <p className="text-xs text-green-500 font-medium">{stats[0].change} from last month</p>
+              <div className="text-2xl font-bold">
+                {typeof stats[0].value === 'string' ? stats[0].value : `₹${stats[0].value}`}
+              </div>
+              <p className="text-xs text-green-500 font-medium">{stats[0].change}</p>
             </CardContent>
           </Card>
           <Card>
              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Orders Today</CardTitle>
+              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats[1].value}</div>
+              <p className="text-xs text-green-500 font-medium">{stats[1].change}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Average Order Value</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats[2].value}</div>
+              <p className="text-xs text-muted-foreground">{stats[2].change}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Menu Items</CardTitle>
               <Utensils className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -673,27 +1005,83 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground">Active menu items</p>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Orders</CardTitle>
-              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats[1].value}</div>
-              <p className="text-xs text-green-500 font-medium">{stats[1].change} since last hour</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">New Customers</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats[2].value}</div>
-              <p className="text-xs text-green-500 font-medium">{stats[2].change} from last month</p>
-            </CardContent>
-          </Card>
         </div>
+
+        {/* Analytics Summary */}
+        {analyticsData && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Payment Methods (Today)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">PhonePe Orders</span>
+                  <span className="font-bold">{analyticsData.paymentMethods?.phonepe?.count || 0}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">PhonePe Revenue</span>
+                  <span className="font-bold text-primary">₹{(analyticsData.paymentMethods?.phonepe?.amount || 0).toFixed(2)}</span>
+                </div>
+                <hr className="my-2" />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">COD Orders</span>
+                  <span className="font-bold">{analyticsData.paymentMethods?.cod?.count || 0}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">COD Revenue</span>
+                  <span className="font-bold text-primary">₹{(analyticsData.paymentMethods?.cod?.amount || 0).toFixed(2)}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Order Types (Today)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Delivery Orders</span>
+                  <span className="font-bold">{analyticsData.orderTypes?.delivery?.count || 0}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Delivery Revenue</span>
+                  <span className="font-bold text-primary">₹{(analyticsData.orderTypes?.delivery?.amount || 0).toFixed(2)}</span>
+                </div>
+                <hr className="my-2" />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Dine-In Orders</span>
+                  <span className="font-bold">{analyticsData.orderTypes?.dineIn?.count || 0}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Dine-In Revenue</span>
+                  <span className="font-bold text-primary">₹{(analyticsData.orderTypes?.dineIn?.amount || 0).toFixed(2)}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Top Dishes (Today)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 max-h-[280px] overflow-y-auto">
+                {analyticsData.topDishes && analyticsData.topDishes.length > 0 ? (
+                  analyticsData.topDishes.slice(0, 5).map((dish: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground truncate">{dish.dishName}</span>
+                      <div className="text-right">
+                        <div className="font-bold">{dish.count} sold</div>
+                        <div className="text-xs text-primary">₹{dish.revenue.toFixed(2)}</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No orders today</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-6 mb-8">
@@ -768,6 +1156,15 @@ export default function Dashboard() {
                       <td className="px-6 py-4">₹{item.price.toFixed(2)}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-muted-foreground hover:text-yellow-600"
+                            onClick={() => handleToggleItemVisibility(itemId)}
+                            title={item.hidden ? "Show item" : "Hide item"}
+                          >
+                            {item.hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => {
                             // open edit dialog populated with item
                             const itemObj: Item = {
@@ -810,6 +1207,159 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Hidden Items Management Section */}
+        {(hiddenItems.length > 0 || hiddenCategories.length > 0 || hiddenSubCategories.length > 0) && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-serif font-bold mb-6">Hidden Items Management</h2>
+            
+            {/* Hidden Categories */}
+            {hiddenCategories.length > 0 && (
+              <div className="bg-card rounded-xl border shadow-sm overflow-hidden mb-6">
+                <div className="px-6 py-4 bg-muted/50 border-b">
+                  <h3 className="text-lg font-semibold">Hidden Categories ({hiddenCategories.length})</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-muted/50 text-muted-foreground uppercase font-medium">
+                      <tr>
+                        <th className="px-6 py-4">Image</th>
+                        <th className="px-6 py-4">Name</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {hiddenCategories.map((cat) => {
+                        const catId = (cat._id || cat.id) as string;
+                        return (
+                          <tr key={catId} className="hover:bg-muted/10 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="h-10 w-10 rounded overflow-hidden bg-muted">
+                                <img src={cat.image} alt={cat.name || cat.title} className="h-full w-full object-cover" />
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 font-medium">{cat.name || cat.title}</td>
+                            <td className="px-6 py-4 text-right">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="gap-2"
+                                onClick={() => handleToggleCategoryVisibility(catId)}
+                              >
+                                <Eye className="h-4 w-4" /> Restore
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Hidden SubCategories */}
+            {hiddenSubCategories.length > 0 && (
+              <div className="bg-card rounded-xl border shadow-sm overflow-hidden mb-6">
+                <div className="px-6 py-4 bg-muted/50 border-b">
+                  <h3 className="text-lg font-semibold">Hidden Subcategories ({hiddenSubCategories.length})</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-muted/50 text-muted-foreground uppercase font-medium">
+                      <tr>
+                        <th className="px-6 py-4">Image</th>
+                        <th className="px-6 py-4">Name</th>
+                        <th className="px-6 py-4">Parent Category</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {hiddenSubCategories.map((subCat) => {
+                        const subCatId = (subCat._id || subCat.id) as string;
+                        const parentCatName = typeof subCat.category === 'object' ? subCat.category.name : 'Unknown';
+                        return (
+                          <tr key={subCatId} className="hover:bg-muted/10 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="h-10 w-10 rounded overflow-hidden bg-muted">
+                                <img src={subCat.image} alt={subCat.name || subCat.title} className="h-full w-full object-cover" />
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 font-medium">{subCat.name || subCat.title}</td>
+                            <td className="px-6 py-4">{parentCatName}</td>
+                            <td className="px-6 py-4 text-right">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="gap-2"
+                                onClick={() => handleToggleSubCategoryVisibility(subCatId)}
+                              >
+                                <Eye className="h-4 w-4" /> Restore
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Hidden Dishes */}
+            {hiddenItems.length > 0 && (
+              <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                <div className="px-6 py-4 bg-muted/50 border-b">
+                  <h3 className="text-lg font-semibold">Hidden Items ({hiddenItems.length})</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-muted/50 text-muted-foreground uppercase font-medium">
+                      <tr>
+                        <th className="px-6 py-4">Image</th>
+                        <th className="px-6 py-4">Name</th>
+                        <th className="px-6 py-4">Subcategory</th>
+                        <th className="px-6 py-4">Price</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {hiddenItems.map((item) => {
+                        const itemId = (item._id || item.id) as string;
+                        const itemName = item.name || item.title;
+                        const categoryId = item.category || item.categoryId;
+                        return (
+                          <tr key={itemId} className="hover:bg-muted/10 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="h-10 w-10 rounded overflow-hidden bg-muted">
+                                <img src={item.image} alt={itemName} className="h-full w-full object-cover" />
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 font-medium">{itemName}</td>
+                            <td className="px-6 py-4">
+                              {categories.find(c => (c._id || c.id) === categoryId)?.name || categories.find(c => (c._id || c.id) === categoryId)?.title || 'Uncategorized'}
+                            </td>
+                            <td className="px-6 py-4">₹{item.price.toFixed(2)}</td>
+                            <td className="px-6 py-4 text-right">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="gap-2"
+                                onClick={() => handleToggleItemVisibility(itemId)}
+                              >
+                                <Eye className="h-4 w-4" /> Restore
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

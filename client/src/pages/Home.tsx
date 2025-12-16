@@ -7,10 +7,15 @@ import { ArrowRight } from 'lucide-react';
 import { Link } from 'wouter';
 import { Hero } from '@/components/ui/hero';
 import { TestimonialSection } from '@/components/testimonials/TestimonialSection';
+import { useEffect } from 'react';
 
 export default function Home() {
   // Use store instead of direct mockData import
-  const { categories } = useMenu();
+  const { categories, fetchMenu } = useMenu();
+
+  useEffect(() => {
+    fetchMenu();
+  }, [fetchMenu]);
 
   return (
     <div className="min-h-screen bg-background">

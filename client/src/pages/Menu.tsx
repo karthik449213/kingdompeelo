@@ -167,80 +167,83 @@ export default function Menu() {
 
         {!isLoading && categories.length > 0 && (
           <>
-            {/* Category Filter - desktop, hidden on mobile */}
-            <div className="hidden md:flex flex-wrap justify-center gap-4 mb-8">
-              <button
-                onClick={() => { setActiveCategory('all'); setActiveSubCategory('all'); }}
-                className={cn(
-                  "px-6 py-2 rounded-full text-sm font-medium transition-all",
-                  activeCategory === 'all' 
-                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25" 
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                )}
-                aria-label="View all menu items"
-              >
-                All Categories
-              </button>
-              {categories.map(cat => (
+            {/* Category Filter - responsive grid on mobile, flex on desktop */}
+            <div className="mb-8 bg-slate-50 dark:bg-slate-900 rounded-lg p-4 md:p-6 border border-slate-200 dark:border-slate-700">
+              <h2 className="text-xs md:text-sm font-semibold text-slate-900 dark:text-white mb-3 md:mb-4 uppercase tracking-wider">Categories</h2>
+              <div className="grid grid-cols-2 md:flex md:flex-wrap md:justify-center gap-2 md:gap-3">
                 <button
-                  key={cat.id}
-                  onClick={() => { setActiveCategory(cat.id); setActiveSubCategory('all'); }}
+                  onClick={() => { setActiveCategory('all'); setActiveSubCategory('all'); }}
                   className={cn(
-                    "px-6 py-2 rounded-full text-sm font-medium transition-all",
-                    activeCategory === cat.id
-                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25" 
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    "px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 border-2",
+                    activeCategory === 'all' 
+                      ? "bg-primary text-white border-primary shadow-md" 
+                      : "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200 border-slate-300 dark:border-slate-600 hover:border-primary hover:text-primary dark:hover:text-primary"
                   )}
-                  aria-label={`View ${cat.title} menu items`}
+                  aria-label="View all menu items"
                 >
-                  {cat.title}
+                  All
                 </button>
-              ))}
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => { setActiveCategory(cat.id); setActiveSubCategory('all'); }}
+                    className={cn(
+                      "px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 border-2",
+                      activeCategory === cat.id
+                        ? "bg-primary text-white border-primary shadow-md" 
+                        : "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200 border-slate-300 dark:border-slate-600 hover:border-primary hover:text-primary dark:hover:text-primary"
+                    )}
+                    aria-label={`View ${cat.title} menu items`}
+                  >
+                    {cat.title}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Mobile: floating icon to open category sheet (bottom-right) */}
-            {/* keep this small in the layout flow; actual fixed positioning is applied on the Button */}
-            <div className="md:hidden">
-              <Button
-                onClick={() => setSheetOpen(true)}
-                size="icon"
-                aria-label="Open categories"
-                className="fixed bottom-6 right-4 z-50 md:hidden"
-              >
-                <MenuIcon />
-              </Button>
-            </div>
+            {/* Floating Category Sheet Button - Mobile Only */}
+            <Button
+              onClick={() => setSheetOpen(true)}
+              size="icon"
+              aria-label="Open categories"
+              className="fixed bottom-6 right-4 z-50 md:hidden rounded-full shadow-lg"
+            >
+              <MenuIcon />
+            </Button>
 
             {/* SubCategory Filter */}
             {filteredSubCategories.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2 mb-12">
-                <button
-                  onClick={() => setActiveSubCategory('all')}
-                  className={cn(
-                    "px-4 py-1.5 rounded-lg text-xs font-medium transition-all border",
-                    activeSubCategory === 'all'
-                      ? "border-primary text-primary bg-primary/5" 
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  )}
-                  aria-label="View all items in category"
-                >
-                  All Items
-                </button>
-                {filteredSubCategories.map(sub => (
+              <div className="mb-10 md:mb-12 bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 rounded-lg p-4 md:p-5 border border-slate-200 dark:border-slate-700">
+                <h3 className="text-xs md:text-sm font-semibold text-slate-900 dark:text-white mb-3 md:mb-4 uppercase tracking-wider">Subcategories</h3>
+                <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2 md:gap-2">
                   <button
-                    key={sub.id}
-                    onClick={() => setActiveSubCategory(sub.id)}
+                    onClick={() => setActiveSubCategory('all')}
                     className={cn(
-                      "px-4 py-1.5 rounded-lg text-xs font-medium transition-all border",
-                      activeSubCategory === sub.id
-                        ? "border-primary text-primary bg-primary/5" 
-                        : "border-transparent text-muted-foreground hover:text-foreground"
+                      "px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 border",
+                      activeSubCategory === 'all'
+                        ? "bg-primary text-white border-primary shadow-sm" 
+                        : "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border-slate-300 dark:border-slate-600 hover:border-primary hover:text-primary dark:hover:text-primary"
                     )}
-                    aria-label={`View ${sub.title} items`}
+                    aria-label="View all items in category"
                   >
-                    {sub.title}
+                    All Items
                   </button>
-                ))}
+                  {filteredSubCategories.map(sub => (
+                    <button
+                      key={sub.id}
+                      onClick={() => setActiveSubCategory(sub.id)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 border",
+                        activeSubCategory === sub.id
+                          ? "bg-primary text-white border-primary shadow-sm" 
+                          : "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border-slate-300 dark:border-slate-600 hover:border-primary hover:text-primary dark:hover:text-primary"
+                      )}
+                      aria-label={`View ${sub.title} items`}
+                    >
+                      {sub.title}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </>
