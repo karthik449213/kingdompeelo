@@ -59,7 +59,7 @@ export default function AdminCategoryManagement() {
   // Load categories from API
   const loadCategories = async () => {
     try {
-      const res = await fetch(`${API_URL}/menu/categories`);
+      const res = await fetch(`${API_URL}/categories`);
       const data = await res.json();
       setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -70,7 +70,7 @@ console.log(API_URL);
   // Load subcategories from API
   const loadSubCategories = async () => {
     try {
-      const res = await fetch(`${API_URL}/menu/subcategories`);
+      const res = await fetch(`${API_URL}/subcategories`);
       const data = await res.json();
       setSubCategories(Array.isArray(data) ? data : []);
     } catch (err) {
