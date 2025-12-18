@@ -12,7 +12,6 @@ import { motion } from 'framer-motion';
 import { ShoppingBag, Phone, MapPin, User, CreditCard, CheckCircle, AlertCircle, Loader2, Radio } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
-import axios from 'axios';
 import { API_BASE_URL } from '@/lib/utils';
 
 const checkoutSchema = z.object({
@@ -21,8 +20,7 @@ const checkoutSchema = z.object({
   email: z.string().email("Valid email is required").optional().or(z.literal("")),
   address: z.string().min(5, "Delivery address is required"),
   notes: z.string().optional(),
-  deliveryType: z.enum(["DELIVERY", "DINE_IN"]),
-  paymentMethod: z.enum(["PHONEPE", "COD"])
+  deliveryType: z.enum(["DELIVERY", "DINE_IN"])
 });
 
 type CheckoutForm = z.infer<typeof checkoutSchema>;
@@ -40,12 +38,10 @@ export default function Checkout() {
   const { register, handleSubmit, setValue, formState: { errors }, watch } = useForm<CheckoutForm>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
-      deliveryType: "DELIVERY",
-      paymentMethod: "COD"
+      deliveryType: "DELIVERY"
     }
   });
 
-  const paymentMethod = watch("paymentMethod");
   const deliveryType = watch("deliveryType");
 
   const WHATSAPP_PHONE = '917075543886';
@@ -77,36 +73,60 @@ export default function Checkout() {
   const handleUseMyLocation = async () => {
     setLocationError(null);
     if (!('geolocation' in navigator)) {
-      setLocationError('Geolocation is not available in your browser.');
+      setLocationError('Geolocation is not available in your browser. Please enable location permission and try again.');
       return;
     }
 
     setDetectingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const { latitude, longitude } = pos.coords;
-          const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
-          const res = await fetch(url);
-          if (!res.ok) throw new Error('Failed to reverse geocode location');
-          const data = await res.json();
-          const addr = data?.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-          setValue('address', addr);
-        } catch (err: any) {
-          setLocationError(err?.message || 'Unable to determine address');
-        } finally {
+    try {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const { latitude, longitude } = pos.coords;
+            
+            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+            
+            const res = await fetch(url, {
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Peelo-Juice-App'
+              }
+            });
+            
+            if (!res.ok) {
+              throw new Error(`Geocoding failed with status ${res.status}`);
+            }
+            
+            const data = await res.json();
+            
+            const addr = data?.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+            
+            setValue('address', addr);
+            setLocationError(null);
+          } catch (err: any) {
+            setLocationError(err?.message || 'Unable to determine address from location. Please enter manually.');
+          } finally {
+            setDetectingLocation(false);
+          }
+        },
+        (err) => {
           setDetectingLocation(false);
-        }
-      },
-      (err) => {
-        setDetectingLocation(false);
-        if (err.code === 1) setLocationError('Permission denied for location access.');
-        else if (err.code === 2) setLocationError('Position unavailable.');
-        else if (err.code === 3) setLocationError('Location request timed out.');
-        else setLocationError('Unable to get location.');
-      },
-      { enableHighAccuracy: true, timeout: 15000 }
-    );
+          if (err.code === 1) {
+            setLocationError('🔒 Location permission denied. Please enable location access in your browser/phone settings and try again.');
+          } else if (err.code === 2) {
+            setLocationError('📍 Location unavailable. Please enable GPS/location services on your device or enter your address manually.');
+          } else if (err.code === 3) {
+            setLocationError('⏱️ Location request timed out. Please check your GPS connection and try again, or enter address manually.');
+          } else {
+            setLocationError('❌ Unable to get your location. Please enter your address manually.');
+          }
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    } catch (err: any) {
+      setLocationError('An unexpected error occurred. Please try again.');
+      setDetectingLocation(false);
+    }
   };
 
   const onSubmit = async (data: CheckoutForm) => {
@@ -120,52 +140,55 @@ export default function Checkout() {
       const deliveryCharge = data.deliveryType === "DELIVERY" ? 50 : 0;
       const totalAmount = subtotal + tax + deliveryCharge;
 
-      // Prepare order data
-      const orderData = {
-        customerName: data.name,
-        customerPhone: data.phone,
-        customerEmail: data.email || null,
-        items: items.map(item => ({
-          dishName: item.title,
-          price: item.price,
-          quantity: item.quantity,
-          specialInstructions: data.notes
-        })),
-        deliveryAddress: data.address,
-        deliveryType: data.deliveryType,
-        subtotal,
-        tax,
-        deliveryCharge,
-        discount: 0,
-        totalAmount,
-        specialNotes: data.notes,
-        paymentMethod: data.paymentMethod
-      };
+      // Format order details for WhatsApp message
+      const orderItems = items
+        .map(item => `${item.title} (Qty: ${item.quantity}) - ₹${(item.price * item.quantity).toFixed(2)}`)
+        .join('\n');
 
-      // Create order
-      const response = await axios.post(`${API_URL}/api/payments/orders`, orderData);
+      const whatsappMessage = `
+🍔 *Kingdom Foods - Order Invoice* 🍔
 
-      if (!response.data.success) {
-        throw new Error(response.data.message || "Failed to create order");
-      }
+*Customer Details:*
+Name: ${data.name}
+Phone: ${data.phone}
+Email: ${data.email || 'Not provided'}
 
-      const { orderId, paymentUrl, paymentMethod: responseMethod } = response.data;
+*Delivery Details:*
+Address: ${data.address}
+Type: ${data.deliveryType === "DELIVERY" ? "Delivery" : "Dine In"}
 
-      if (responseMethod === "PHONEPE" && paymentUrl) {
-        // Redirect to PhonePe payment
-        window.location.href = paymentUrl;
-      } else {
-        // For COD, show success
-        setIsSubmitted(true);
-        setSuccessMessage(`Order created successfully! Order ID: ${orderId}`);
-        clearCart();
-        setTimeout(() => {
-          setLocation(`/invoice?orderId=${orderId}`);
-        }, 3000);
-      }
+*Order Items:*
+${orderItems}
+
+*Bill Summary:*
+Subtotal: ₹${subtotal.toFixed(2)}
+Tax (5%): ₹${(tax).toFixed(2)}
+Delivery Charge: ₹${deliveryCharge.toFixed(2)}
+*Total: ₹${totalAmount.toFixed(2)}*
+
+${data.notes ? `*Special Instructions:*\n${data.notes}\n` : ''}
+
+Thank you for your order! 😊
+`.trim();
+
+      // Send to WhatsApp
+      const whatsappPhone = "917075543886";
+      const encodedMessage = encodeURIComponent(whatsappMessage);
+      const whatsappURL = `https://wa.me/${whatsappPhone}?text=${encodedMessage}`;
+
+      // Redirect to WhatsApp
+      window.open(whatsappURL, '_blank');
+
+      // Show success message
+      setIsSubmitted(true);
+      setSuccessMessage("Order sent to WhatsApp! Thank you for your order.");
+      clearCart();
+      
+      setTimeout(() => {
+        setLocation("/menu");
+      }, 3000);
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || "An error occurred");
-      console.error("Checkout error:", err);
     } finally {
       setIsProcessing(false);
     }
@@ -350,37 +373,31 @@ export default function Checkout() {
                         <Button 
                           type="button" 
                           onClick={handleUseMyLocation} 
-                          className="h-10 mt-1"
+                          className="h-10 mt-1 whitespace-nowrap"
+                          variant="outline"
                           disabled={detectingLocation}
+                          aria-label="Get current location"
+                          title="Click to auto-fill your address using your device location"
                         >
-                          {detectingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Locate'}
+                          {detectingLocation ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              Getting...
+                            </>
+                          ) : (
+                            'Locate'
+                          )}
                         </Button>
                       </div>
-                      {locationError && <p className="text-red-600 text-xs">{locationError}</p>}
+                      {locationError && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-md p-2.5">
+                          <p className="text-amber-800 text-xs leading-relaxed">{locationError}</p>
+                          <p className="text-amber-700 text-xs mt-1.5 font-medium">💡 Tip: You can still manually enter your address below.</p>
+                        </div>
+                      )}
                       {errors.address && <p className="text-destructive text-xs">{errors.address.message}</p>}
                     </div>
                   )}
-                </div>
-
-                {/* Payment Method */}
-                <div className="space-y-4 pb-6 border-b">
-                  <h3 className="font-semibold text-sm">Payment Method *</h3>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition" style={{borderColor: paymentMethod === "PHONEPE" ? "var(--primary)" : ""}}>
-                      <input type="radio" value="PHONEPE" {...register("paymentMethod")} />
-                      <div className="flex-1">
-                        <p className="font-medium">PhonePe</p>
-                        <p className="text-xs text-muted-foreground">Pay securely with PhonePe</p>
-                      </div>
-                    </label>
-                    <label className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition" style={{borderColor: paymentMethod === "COD" ? "var(--primary)" : ""}}>
-                      <input type="radio" value="COD" {...register("paymentMethod")} />
-                      <div className="flex-1">
-                        <p className="font-medium">Cash on Delivery</p>
-                        <p className="text-xs text-muted-foreground">Pay when your order arrives</p>
-                      </div>
-                    </label>
-                  </div>
                 </div>
 
                 {/* Special Instructions */}
@@ -402,14 +419,12 @@ export default function Checkout() {
                   ) : (
                     <>
                       <CreditCard className="h-4 w-4 mr-2" />
-                      {paymentMethod === "PHONEPE" ? "Proceed to PhonePe" : "Complete Order"}
+                      Send Invoice to WhatsApp
                     </>
                   )}
                 </Button>
                 <p className="text-xs text-center text-muted-foreground">
-                  {paymentMethod === "PHONEPE" 
-                    ? "You'll be redirected to PhonePe for secure payment."
-                    : "Your order will be confirmed after payment verification."}
+                  Your order will be sent to WhatsApp for confirmation.
                 </p>
               </form>
             </div>

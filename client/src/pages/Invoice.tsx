@@ -92,17 +92,17 @@ export default function Invoice() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-amber-50 via-white to-orange-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
       <Navbar />
       
       <div className="container mx-auto px-4 py-12 pt-24">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="inline-block bg-linear-to-r from-amber-500 to-orange-500 text-white px-4 py-2 rounded-full text-sm font-semibold mb-3">
+          <div className="inline-block bg-gradient-to-r from-primary to-orange-500 text-primary-foreground px-4 py-2 rounded-full text-sm font-semibold mb-3">
             Order Invoice
           </div>
-          <h1 className="text-4xl font-serif font-bold text-gray-900 mb-2">Order Summary</h1>
-          <p className="text-gray-600">Review and customize your order</p>
+          <h1 className="text-4xl font-serif font-bold text-foreground mb-2">Order Summary</h1>
+          <p className="text-muted-foreground">Review and customize your order</p>
         </div>
 
         {/* Order Items */}
@@ -110,21 +110,21 @@ export default function Invoice() {
           {items.map((item: any, idx: number) => (
             <div
               key={`${item.id}-${JSON.stringify(item.customizations || {})}`}
-              className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-5 border border-gray-100"
+              className="bg-card rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-5 border border-border"
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1">
-                  <h3 className="text-lg font-bold text-gray-900">{item.title}</h3>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <h3 className="text-lg font-bold text-foreground">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
                     Qty: <span className="font-semibold">{item.quantity}</span>
                   </p>
                 </div>
-                <span className="text-xl font-bold text-amber-600">₹{(item.price * item.quantity).toFixed(2)}</span>
+                <span className="text-xl font-bold text-primary">₹{(item.price * item.quantity).toFixed(2)}</span>
               </div>
               
               <div className="space-y-2">
                 {item.customizations && formatCustomizations(item.customizations) !== 'None' && (
-                  <div className="bg-amber-50 rounded-lg px-3 py-2 text-sm text-gray-700">
+                  <div className="bg-secondary rounded-lg px-3 py-2 text-sm text-secondary-foreground">
                     <span className="font-semibold">Customizations:</span> {formatCustomizations(item.customizations)}
                   </div>
                 )}
@@ -250,21 +250,21 @@ export default function Invoice() {
         </div>
 
         {/* Summary Card */}
-        <div className="bg-white rounded-2xl shadow-md p-6 mb-8 border-2 border-amber-200 max-w-2xl mx-auto">
+        <div className="bg-card rounded-2xl shadow-md p-6 mb-8 border-2 border-primary/20 max-w-2xl mx-auto">
           <div className="space-y-3 mb-4">
-            <div className="flex justify-between text-gray-700">
+            <div className="flex justify-between text-foreground">
               <span>Subtotal</span>
               <span>₹{total().toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-gray-700">
+            <div className="flex justify-between text-foreground">
               <span>Delivery</span>
               <span className="text-green-600 font-semibold">Free</span>
             </div>
-            <div className="h-px bg-gray-200"></div>
+            <div className="h-px bg-border"></div>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xl font-bold text-gray-900">Total Amount</span>
-            <span className="text-3xl font-bold bg-linear-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
+            <span className="text-xl font-bold text-foreground">Total Amount</span>
+            <span className="text-3xl font-bold bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">
               ₹{total().toFixed(2)}
             </span>
           </div>

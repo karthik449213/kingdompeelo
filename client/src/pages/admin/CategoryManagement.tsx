@@ -52,29 +52,45 @@ export default function AdminCategoryManagement() {
       return;
     }
     setToken(storedToken);
-    loadCategories();
-    loadSubCategories();
   }, []);
+
+  // Load categories and subcategories when token is available
+  useEffect(() => {
+    if (token) {
+      loadCategories();
+      loadSubCategories();
+    }
+  }, [token]);
 
   // Load categories from API
   const loadCategories = async () => {
     try {
-      const res = await fetch(`${API_URL}/categories`);
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch(`${API_URL}/menu/categories`, { headers });
+      if (!res.ok) throw new Error(`Failed to fetch categories: ${res.status}`);
       const data = await res.json();
       setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Failed to load categories:', err);
+      setCategories([]);
     }
   };
-console.log(API_URL);
+
   // Load subcategories from API
   const loadSubCategories = async () => {
     try {
-      const res = await fetch(`${API_URL}/subcategories`);
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch(`${API_URL}/menu/subcategories`, { headers });
+      if (!res.ok) throw new Error(`Failed to fetch subcategories: ${res.status}`);
       const data = await res.json();
       setSubCategories(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Failed to load subcategories:', err);
+      setSubCategories([]);
     }
   };
 
@@ -100,12 +116,15 @@ console.log(API_URL);
         body: formData,
       });
 
-      if (!res.ok) throw new Error('Failed to add category');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to add category');
+      }
       setCategoryForm({ name: '', image: null, preview: '' });
       setIsCategoryDialogOpen(false);
-      loadCategories();
+      await loadCategories();
     } catch (err) {
-      console.error('Error adding category:', err);
+      alert(`Error: ${err instanceof Error ? err.message : 'Failed to add category'}`);
     }
   };
 
@@ -123,13 +142,16 @@ console.log(API_URL);
         body: formData,
       });
 
-      if (!res.ok) throw new Error('Failed to update category');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update category');
+      }
       setCategoryForm({ name: '', image: null, preview: '' });
       setEditingCategoryId(null);
       setIsCategoryDialogOpen(false);
-      loadCategories();
+      await loadCategories();
     } catch (err) {
-      console.error('Error updating category:', err);
+      alert(`Error: ${err instanceof Error ? err.message : 'Failed to update category'}`);
     }
   };
 
@@ -142,10 +164,13 @@ console.log(API_URL);
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) throw new Error('Failed to delete category');
-      loadCategories();
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to delete category');
+      }
+      await loadCategories();
     } catch (err) {
-      console.error('Error deleting category:', err);
+      alert(`Error: ${err instanceof Error ? err.message : 'Failed to delete category'}`);
     }
   };
 
@@ -187,12 +212,15 @@ console.log(API_URL);
         body: formData,
       });
 
-      if (!res.ok) throw new Error('Failed to add subcategory');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to add subcategory');
+      }
       setSubCategoryForm({ name: '', category: '', image: null, preview: '' });
       setIsSubCategoryDialogOpen(false);
-      loadSubCategories();
+      await loadSubCategories();
     } catch (err) {
-      console.error('Error adding subcategory:', err);
+      alert(`Error: ${err instanceof Error ? err.message : 'Failed to add subcategory'}`);
     }
   };
 
@@ -211,13 +239,16 @@ console.log(API_URL);
         body: formData,
       });
 
-      if (!res.ok) throw new Error('Failed to update subcategory');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update subcategory');
+      }
       setSubCategoryForm({ name: '', category: '', image: null, preview: '' });
       setEditingSubCategoryId(null);
       setIsSubCategoryDialogOpen(false);
-      loadSubCategories();
+      await loadSubCategories();
     } catch (err) {
-      console.error('Error updating subcategory:', err);
+      alert(`Error: ${err instanceof Error ? err.message : 'Failed to update subcategory'}`);
     }
   };
 
@@ -230,10 +261,13 @@ console.log(API_URL);
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) throw new Error('Failed to delete subcategory');
-      loadSubCategories();
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to delete subcategory');
+      }
+      await loadSubCategories();
     } catch (err) {
-      console.error('Error deleting subcategory:', err);
+      alert(`Error: ${err instanceof Error ? err.message : 'Failed to delete subcategory'}`);
     }
   };
 

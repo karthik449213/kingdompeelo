@@ -1,29 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { DollarSign, TrendingUp, Users, ShoppingCart } from 'lucide-react';
 import axios from 'axios';
-import { useOrderUpdates, useDashboardSocket } from '@/hooks/useSocket';
 import { API_BASE_URL } from '@/lib/utils';
 
 const API_URL = API_BASE_URL;
-const COLORS = ['#0ea5e9', '#06b6d4', '#14b8a6', '#f59e0b', '#ef4444'];
 
 interface OrderAnalytics {
   totalOrders: number;
   successfulOrders: number;
   totalRevenue: number;
   averageOrderValue: number;
-  paymentMethods: {
-    phonepe: { count: number; amount: number };
-    cod: { count: number; amount: number };
-  };
-  orderTypes: {
-    delivery: { count: number; amount: number };
-    dineIn: { count: number; amount: number };
-  };
-  peakHours: Array<{ hour: number; orders: number; revenue: number }>;
-  topDishes: Array<{ dishName: string; count: number; revenue: number }>;
 }
 
 interface GrowthMetrics {
@@ -40,8 +27,6 @@ export function Analytics() {
   const [growthMetrics, setGrowthMetrics] = useState<GrowthMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const { socket, isConnected } = useDashboardSocket();
 
   // Fetch analytics data
   const fetchAnalytics = async () => {
@@ -70,34 +55,7 @@ export function Analytics() {
 
   useEffect(() => {
     fetchAnalytics();
-
-    // Refresh analytics every 30 seconds
-    const interval = setInterval(fetchAnalytics, 30000);
-    return () => clearInterval(interval);
   }, []);
-
-  // Listen for real-time order updates
-  useEffect(() => {
-    if (!socket || !isConnected) return;
-
-    const handleNewOrder = () => {
-      // Refresh analytics when new order arrives
-      fetchAnalytics();
-    };
-
-    const handleStatusUpdate = () => {
-      // Refresh analytics when order status changes
-      fetchAnalytics();
-    };
-
-    socket.on('new_order', handleNewOrder);
-    socket.on('order_status_updated', handleStatusUpdate);
-
-    return () => {
-      socket.off('new_order', handleNewOrder);
-      socket.off('order_status_updated', handleStatusUpdate);
-    };
-  }, [socket, isConnected]);
 
   if (loading) {
     return (
@@ -175,123 +133,6 @@ export function Analytics() {
           <CardContent>
             <div className="text-2xl font-bold">{growthMetrics?.repeatCustomers || 0}</div>
             <p className="text-xs text-muted-foreground">lifetime</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Peak Hours */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Peak Order Hours</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {todayAnalytics?.peakHours && todayAnalytics.peakHours.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={todayAnalytics.peakHours}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="hour" 
-                    formatter={(value) => `${value}:00`}
-                  />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value) => value}
-                    labelFormatter={(label) => `${label}:00`}
-                  />
-                  <Bar dataKey="orders" fill="#0ea5e9" name="Orders" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-muted-foreground text-center py-8">No data yet</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Payment Methods */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Methods</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {todayAnalytics?.paymentMethods && (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'PhonePe', value: todayAnalytics.paymentMethods.phonepe.count },
-                      { name: 'COD', value: todayAnalytics.paymentMethods.cod.count }
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {COLORS.map((color, index) => (
-                      <Cell key={`cell-${index}`} fill={color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Top Dishes */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Selling Dishes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {todayAnalytics?.topDishes && todayAnalytics.topDishes.slice(0, 5).map((dish, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">{dish.dishName}</p>
-                    <p className="text-xs text-muted-foreground">{dish.count} sold</p>
-                  </div>
-                  <p className="font-semibold">₹{dish.revenue.toFixed(2)}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Order Type Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Types</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {todayAnalytics?.orderTypes && (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Delivery', value: todayAnalytics.orderTypes.delivery.count },
-                      { name: 'Dine In', value: todayAnalytics.orderTypes.dineIn.count }
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {COLORS.map((color, index) => (
-                      <Cell key={`cell-${index}`} fill={color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
           </CardContent>
         </Card>
       </div>

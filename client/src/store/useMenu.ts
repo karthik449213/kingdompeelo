@@ -73,19 +73,14 @@ export const useMenu = create<MenuState>()(
           const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
           const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-          console.log('fetchMenu called, token available:', !!token);
-
           // Primary: Try /api/menu/organized endpoint (best for public users)
           try {
             const organizedUrl = `${API_BASE_URL}/api/menu/organized`;
-            console.log('Trying organized endpoint:', organizedUrl);
             
             const organizedResponse = await fetch(organizedUrl, { headers }).then(r => r.json());
-            console.log('Organized response:', organizedResponse);
 
             let data = organizedResponse?.data || organizedResponse;
             if (Array.isArray(data) && data.length > 0) {
-              console.log('Organized endpoint returned items, processing...');
               data.forEach((categoryData: any) => {
                 const category: Category = {
                   id: categoryData._id,
@@ -127,21 +122,17 @@ export const useMenu = create<MenuState>()(
               });
             }
           } catch (organizedError) {
-            console.log('Organized endpoint failed:', organizedError);
           }
 
           // Fallback: Try /api/menu/dishes endpoint (same as admin uses)
           if (items.length === 0) {
-            console.log('No items from organized, trying /api/menu/dishes...');
             try {
               const dishesUrl = `${API_BASE_URL}/api/menu/dishes?limit=1000`;
               const dishesResponse = await fetch(dishesUrl, { headers }).then(r => r.json());
-              console.log('Dishes response:', dishesResponse);
 
               let dishesArray = dishesResponse?.dishes || (Array.isArray(dishesResponse) ? dishesResponse : []);
               
               if (Array.isArray(dishesArray) && dishesArray.length > 0) {
-                console.log('Dishes endpoint returned items, processing...');
                 
                 // Extract unique categories from dishes
                 const categoryMap = new Map();
@@ -191,22 +182,18 @@ export const useMenu = create<MenuState>()(
                 subCategories.push(...Array.from(subCategoryMap.values()));
               }
             } catch (dishesError) {
-              console.error('Dishes endpoint also failed:', dishesError);
             }
           }
 
           // Last resort: Try standalone dishes
           if (items.length === 0) {
-            console.log('No items from dishes endpoint, trying standalone...');
             try {
               const standaloneUrl = `${API_BASE_URL}/api/menu/dishes/standalone/all?limit=1000`;
               const standaloneResponse = await fetch(standaloneUrl, { headers }).then(r => r.json());
-              console.log('Standalone response:', standaloneResponse);
 
               let standaloneArray = standaloneResponse?.dishes || (Array.isArray(standaloneResponse) ? standaloneResponse : []);
               
               if (Array.isArray(standaloneArray) && standaloneArray.length > 0) {
-                console.log('Standalone endpoint returned items');
                 
                 const categoryMap = new Map();
                 standaloneArray.forEach((dishData: any) => {
@@ -237,17 +224,13 @@ export const useMenu = create<MenuState>()(
                 categories.push(...Array.from(categoryMap.values()));
               }
             } catch (standaloneError) {
-              console.error('Standalone failed:', standaloneError);
             }
           }
-
-          console.log('Final loaded state:', { categories: categories.length, subCategories: subCategories.length, items: items.length });
           
           // Update state all at once
           set({ categories, subCategories, items });
           
         } catch (error) {
-          console.error('Menu fetch error:', error);
           toast({ title: "Error", description: "Failed to load menu data." });
         }
       },

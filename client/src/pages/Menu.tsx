@@ -33,10 +33,18 @@ export default function Menu() {
     const params = new URLSearchParams(location.split('?')[1]);
     const categoryParam = params.get('category');
     if (categoryParam) {
-      setActiveCategory(categoryParam);
+      // Try to find category by ID or slug
+      const matchedCategory = categories.find(
+        cat => cat.id === categoryParam || (cat as any).slug === categoryParam
+      );
+      if (matchedCategory) {
+        setActiveCategory(matchedCategory.id);
+      } else {
+        setActiveCategory(categoryParam);
+      }
       setActiveSubCategory('all');
     }
-  }, [location]);
+  }, [location, categories]);
 
   const filteredSubCategories = activeCategory === 'all' 
     ? subCategories 

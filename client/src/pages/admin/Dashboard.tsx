@@ -149,62 +149,7 @@ export default function Dashboard() {
       }
     };
 
-    const fetchAnalytics = async () => {
-      try {
-        const [todayRes, weekRes] = await Promise.all([
-          fetch(`${API_URL}/analytics/today`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch(`${API_URL}/analytics/week`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-        ]);
-
-        if (todayRes.ok) {
-          const todayData = await todayRes.json();
-          setAnalyticsData(todayData.analytics);
-          
-          // Update stats with real analytics data
-          setStats(prev => [
-            { 
-              value: `₹${todayData.analytics?.totalRevenue?.toFixed(2) || 0}`, 
-              change: `₹${todayData.analytics?.totalRevenue?.toFixed(2) || 0} today` 
-            },
-            { 
-              value: todayData.analytics?.totalOrders || 0, 
-              change: `${todayData.analytics?.successfulOrders || 0} successful` 
-            },
-            { 
-              value: `₹${todayData.analytics?.averageOrderValue?.toFixed(2) || 0}`, 
-              change: 'average per order' 
-            }
-          ]);
-        }
-
-        if (weekRes.ok) {
-          const weekData = await weekRes.json();
-          setWeekAnalytics(weekData.analytics);
-          
-          // Update revenue chart with weekly data
-          if (weekData.analytics?.daily && Array.isArray(weekData.analytics.daily)) {
-            const weekChartData = weekData.analytics.daily.map((day: any, idx: number) => ({
-              name: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx % 7],
-              total: day.totalRevenue || 0
-            }));
-            setChartRevenue(weekChartData);
-            
-            // Update orders chart with weekly data
-            const weekOrderData = weekData.analytics.daily.map((day: any, idx: number) => ({
-              time: ['10am', '12pm', '2pm', '4pm', '6pm', '8pm', '10pm'][idx % 7],
-              orders: day.totalOrders || 0
-            }));
-            setChartOrders(weekOrderData);
-          }
-        }
-      } catch (err) {
-        console.error('Analytics fetch error:', err);
-      }
-    };
+    
 
     const fetchDishes = async () => {
       try {
@@ -216,7 +161,6 @@ export default function Dashboard() {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
         if (!res.ok) {
-          console.error('Failed to fetch dishes:', res.status);
           return;
         }
         const data = await res.json();
@@ -236,7 +180,6 @@ export default function Dashboard() {
           hidden: dish.hidden || false
         })) : []);
       } catch (err) {
-        console.error('Error fetching dishes:', err);
       }
     };
 
@@ -249,7 +192,6 @@ export default function Dashboard() {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
         if (!res.ok) {
-          console.error('Failed to fetch subcategories:', res.status);
           return;
         }
         const data = await res.json();
@@ -264,7 +206,6 @@ export default function Dashboard() {
           hidden: sub.hidden || false
         })) : []);
       } catch (err) {
-        console.error('SubCategories Error:', err);
       }
     };
 
@@ -276,7 +217,6 @@ export default function Dashboard() {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
         if (!res.ok) {
-          console.error('Failed to fetch categories:', res.status);
           return;
         }
         const data = await res.json();
@@ -290,7 +230,6 @@ export default function Dashboard() {
           hidden: cat.hidden || false
         })) : []);
       } catch (err) {
-        console.error('Categories Error:', err);
       }
     };
 
@@ -302,7 +241,6 @@ export default function Dashboard() {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) {
-          console.error('Failed to fetch hidden dishes:', res.status);
           return;
         }
         const data = await res.json();
@@ -317,7 +255,6 @@ export default function Dashboard() {
           hidden: true
         })) : []);
       } catch (err) {
-        console.error('Error fetching hidden dishes:', err);
       }
     };
 
@@ -329,7 +266,6 @@ export default function Dashboard() {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) {
-          console.error('Failed to fetch hidden categories:', res.status);
           return;
         }
         const data = await res.json();
@@ -342,7 +278,6 @@ export default function Dashboard() {
           hidden: true
         })) : []);
       } catch (err) {
-        console.error('Error fetching hidden categories:', err);
       }
     };
 
@@ -354,7 +289,6 @@ export default function Dashboard() {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) {
-          console.error('Failed to fetch hidden subcategories:', res.status);
           return;
         }
         const data = await res.json();
@@ -368,13 +302,12 @@ export default function Dashboard() {
           hidden: true
         })) : []);
       } catch (err) {
-        console.error('Error fetching hidden subcategories:', err);
       }
     };
 
     // Fetch initial data
     fetchDashboardData();
-    fetchAnalytics();
+   
     fetchDishes();
     fetchCategories();
     fetchMainCategories();
@@ -383,9 +316,7 @@ export default function Dashboard() {
     fetchHiddenSubCategories();
 
     // Real-time polling for analytics (every 30 seconds)
-    pollingIntervalRef.current = setInterval(() => {
-      fetchAnalytics();
-    }, 30000);
+   
 
     return () => {
       if (pollingIntervalRef.current) {

@@ -40,7 +40,6 @@ export default function AdminTestimonialManagement() {
       const data = await res.json();
       setTestimonials(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Failed to load testimonials:', err);
     } finally {
       setLoading(false);
     }
@@ -56,7 +55,6 @@ export default function AdminTestimonialManagement() {
       if (!res.ok) throw new Error('Failed to approve');
       loadTestimonials();
     } catch (err) {
-      console.error('Error approving testimonial:', err);
     }
   };
 
@@ -70,7 +68,6 @@ export default function AdminTestimonialManagement() {
       if (!res.ok) throw new Error('Failed to reject');
       loadTestimonials();
     } catch (err) {
-      console.error('Error rejecting testimonial:', err);
     }
   };
 
@@ -86,7 +83,6 @@ export default function AdminTestimonialManagement() {
       if (!res.ok) throw new Error('Failed to delete');
       loadTestimonials();
     } catch (err) {
-      console.error('Error deleting testimonial:', err);
     }
   };
 

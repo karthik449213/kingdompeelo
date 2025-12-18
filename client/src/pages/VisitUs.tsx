@@ -179,7 +179,7 @@ export default function VisitUs() {
 
         {/* CTA Section */}
         <motion.div
-          className="bg-linear-to-r from-amber-500 to-orange-500 text-white rounded-lg p-12 text-center"
+          className="bg-gradient-to-r from-primary to-orange-500 text-primary-foreground rounded-lg p-12 text-center"
           variants={itemVariants}
           initial="hidden"
           whileInView="visible"
@@ -191,7 +191,7 @@ export default function VisitUs() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/menu" asChild>
-              <Button size="lg" className="bg-white text-amber-600 hover:bg-white/90">
+              <Button size="lg" className="bg-background text-primary hover:bg-secondary">
                 Order Now
               </Button>
             </Link>

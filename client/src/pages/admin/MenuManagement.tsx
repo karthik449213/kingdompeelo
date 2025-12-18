@@ -81,7 +81,6 @@ export default function AdminMenuManagement() {
       const data = await res.json();
       setMenu(Array.isArray(data) ? data : Array.isArray(data?.dishes) ? data.dishes : []);
     } catch (err) {
-      console.error('Failed to load menu:', err);
     }
   }, [token]);
 
@@ -95,41 +94,50 @@ export default function AdminMenuManagement() {
       const data = await res.json();
       setHiddenItems(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Failed to load hidden items:', err);
     }
   }, [token]);
 
   // Load categories
   const loadCategories = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/menu/categories`);
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch(`${API_URL}/menu/categories`, { headers });
+      if (!res.ok) throw new Error(`Failed to fetch categories: ${res.status}`);
       const data = await res.json();
-      setCategories(Array.isArray(data) ? data : []);
+      setCategories(Array.isArray(data) ? data : data?.categories || []);
     } catch (err) {
-      console.error('Failed to load categories:', err);
+      setCategories([]);
     }
-  }, []);
+  }, [token]);
 
   // Load subcategories
   const loadSubCategories = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/menu/subcategories`);
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch(`${API_URL}/menu/subcategories`, { headers });
+      if (!res.ok) throw new Error(`Failed to fetch subcategories: ${res.status}`);
       const data = await res.json();
-      setSubCategories(Array.isArray(data) ? data : []);
+      setSubCategories(Array.isArray(data) ? data : data?.subcategories || []);
     } catch (err) {
-      console.error('Failed to load subcategories:', err);
+      setSubCategories([]);
     }
-  }, []);
+  }, [token]);
 
-  // Load data when token is set
+  // Load all data when token is set
   useEffect(() => {
     if (token) {
       loadMenu();
+      loadHiddenItems();
       loadCategories();
       loadSubCategories();
-      loadHiddenItems();
     }
-  }, [token, loadMenu, loadCategories, loadSubCategories, loadHiddenItems]);
+  }, [token, loadMenu, loadHiddenItems, loadCategories, loadSubCategories]);
 
   // Handle scroll to top visibility
   useEffect(() => {
@@ -210,7 +218,6 @@ export default function AdminMenuManagement() {
       setIsAddDialogOpen(false);
       loadMenu();
     } catch (err: any) {
-      console.error('Error adding dish:', err);
       toast({
         title: 'Error',
         description: 'Failed to add dish: ' + (err.message || 'Unknown error'),
@@ -230,7 +237,6 @@ export default function AdminMenuManagement() {
       loadMenu();
       loadHiddenItems();
     } catch (err: any) {
-      console.error('Error deleting dish:', err);
     }
   };
 
@@ -244,7 +250,6 @@ export default function AdminMenuManagement() {
       loadMenu();
       loadHiddenItems();
     } catch (err: any) {
-      console.error('Error toggling visibility:', err);
       toast({
         title: 'Error',
         description: 'Failed to toggle visibility: ' + (err.message || 'Unknown error'),
@@ -300,9 +305,9 @@ export default function AdminMenuManagement() {
       setForm({ name: '', price: '', category: '', subCategory: '', description: '', available: true, stars: 5 });
       setFile(null);
       setPreview(null);
+      setIsAddDialogOpen(false);
       loadMenu();
     } catch (err: any) {
-      console.error('Error updating dish:', err);
       toast({
         title: 'Error',
         description: 'Failed to update dish: ' + (err.message || 'Unknown error'),
@@ -344,24 +349,35 @@ export default function AdminMenuManagement() {
             <h1 className="text-2xl sm:text-3xl font-serif font-bold">Dish Management</h1>
             <p className="text-muted-foreground text-sm sm:text-base">Add, edit, and delete dishes</p>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
-            setIsAddDialogOpen(open);
-            if (!open) {
-              // Reset form when dialog closes
-              cancelEdit();
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Button
-                className="gap-2"
-                onClick={() => {
-                  cancelEdit();
-                  setIsAddDialogOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4" /> Add Dish
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                loadCategories();
+                loadSubCategories();
+              }}
+            >
+              Refresh Data
+            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+              setIsAddDialogOpen(open);
+              if (!open) {
+                // Reset form when dialog closes
+                cancelEdit();
+              }
+            }}>
+              <DialogTrigger asChild>
+                <Button
+                  className="gap-2"
+                  onClick={() => {
+                    cancelEdit();
+                    setIsAddDialogOpen(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4" /> Add Dish
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingId ? 'Edit Dish' : 'Add New Dish'}</DialogTitle>
@@ -394,44 +410,56 @@ export default function AdminMenuManagement() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
+                  <Label htmlFor="category">Category * ({categories.length} available)</Label>
                   <Select value={form.category || ''} onValueChange={(val) => {
                     setForm({ ...form, category: val, subCategory: '' });
                   }}>
-                    <SelectTrigger>
+                    <SelectTrigger className={categories.length === 0 ? 'border-red-500' : ''}>
                       <SelectValue placeholder="Select category">
                         {form.category ? categories.find(c => c._id === form.category)?.name : 'Select category'}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((c) => (
-                        <SelectItem key={c._id} value={c._id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
+                      {categories.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground">No categories available</div>
+                      ) : (
+                        categories.map((c) => (
+                          <SelectItem key={c._id} value={c._id}>
+                            {c.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="subCategory">SubCategory *</Label>
+                  <Label htmlFor="subCategory">SubCategory * ({getAvailableSubCategories().length} available)</Label>
                   <div className="flex gap-2 items-center">
                     <Select
                       value={form.subCategory || ''}
-                      onValueChange={(val) => setForm({ ...form, subCategory: val })}
+                      onValueChange={(val) => {
+                        setForm({ ...form, subCategory: val });
+                      }}
                       disabled={!form.category}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select subcategory">
-                          {form.subCategory ? getAvailableSubCategories().find(sc => sc._id === form.subCategory)?.name : 'Select subcategory'}
+                      <SelectTrigger className={!form.category ? 'opacity-50' : getAvailableSubCategories().length === 0 ? 'border-red-500' : ''}>
+                        <SelectValue placeholder={!form.category ? 'Select a category first' : 'Select subcategory'}>
+                          {form.subCategory ? getAvailableSubCategories().find(sc => sc._id === form.subCategory)?.name : (!form.category ? 'Select a category first' : 'Select subcategory')}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        {getAvailableSubCategories().map((sc) => (
-                          <SelectItem key={sc._id} value={sc._id}>
-                            {sc.name}
-                          </SelectItem>
-                        ))}
+                        {!form.category ? (
+                          <div className="p-2 text-sm text-muted-foreground">Select a category first</div>
+                        ) : getAvailableSubCategories().length === 0 ? (
+                          <div className="p-2 text-sm text-muted-foreground">No subcategories for this category</div>
+                        ) : (
+                          getAvailableSubCategories().map((sc) => (
+                            <SelectItem key={sc._id} value={sc._id}>
+                              {sc.name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     {form.subCategory && (
@@ -509,7 +537,8 @@ export default function AdminMenuManagement() {
                 </div>
               </div>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         {/* Search Bar */}
