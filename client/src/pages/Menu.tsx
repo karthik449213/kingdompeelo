@@ -221,7 +221,7 @@ export default function Menu() {
 
             {/* SubCategory Filter */}
             {filteredSubCategories.length > 0 && (
-              <div className="mb-10 md:mb-12 bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 rounded-lg p-4 md:p-5 border border-slate-200 dark:border-slate-700">
+              <div className="mb-10 md:mb-12 bg-linear-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 rounded-lg p-4 md:p-5 border border-slate-200 dark:border-slate-700">
                 <h3 className="text-xs md:text-sm font-semibold text-slate-900 dark:text-white mb-3 md:mb-4 uppercase tracking-wider">Subcategories</h3>
                 <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2 md:gap-2">
                   <button

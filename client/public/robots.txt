@@ -15,4 +15,4 @@ Disallow: /api/
 Disallow: /dashboard/
 
 # Sitemap location
-Sitemap: https://peelojuice.com/sitemap.xml
+Sitemap: https://peelojuice.netlify.app/sitemap.xml

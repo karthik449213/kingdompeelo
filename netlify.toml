@@ -5,7 +5,7 @@ publish = "dist/public"
 
 [build.environment]
 NODE_VERSION = "18.17.0"
-VITE_API_URL = "https://kingdomfoods-api.onrender.com"
+VITE_API_URL = "https://kingdomfoods.onrender.com"
 
 # SPA Routing Fix - Redirect all routes to index.html
 [[redirects]]
@@ -16,7 +16,7 @@ status = 200
 # API proxy - direct requests to backend
 [[redirects]]
 from = "/api/*"
-to = "https://kingdomfoods-api.onrender.com/api/:splat"
+to = "https://kingdomfoods.onrender.com/api/:splat"
 status = 200
 force = false
 
