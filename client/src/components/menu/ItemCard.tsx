@@ -2,14 +2,16 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/store/useCart';
 import { Plus, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, memo } from 'react';
+import { optimizeItemImage } from '@/lib/cloudinary';
 import type { Item } from '@/store/useMenu';
 
 interface ItemCardProps {
   item: Item;
 }
 
-export function ItemCard({ item }: ItemCardProps) {
+// PERFORMANCE: Memoize ItemCard to avoid unnecessary re-renders
+export const ItemCard = memo(function ItemCard({ item }: ItemCardProps) {
   const addToCart = useCart((state) => state.addToCart);
   const [isHovered, setIsHovered] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
@@ -17,6 +19,8 @@ export function ItemCard({ item }: ItemCardProps) {
   // Default to available if undefined
   const isAvailable = item.available !== false;
   const starRating = item.stars ?? 5;
+  // PERFORMANCE: Use optimized image URL
+  const optimizedImage = optimizeItemImage(item.image);
 
   // Helper function to render star rating
   const renderStars = (rating: number) => {
@@ -58,8 +62,10 @@ export function ItemCard({ item }: ItemCardProps) {
     >
       <div className="relative aspect-4/3 overflow-hidden">
         <img 
-          src={item.image} 
-          alt={item.title} 
+          src={optimizedImage} 
+          alt={item.title}
+          loading="lazy"
+          decoding="async"
           className={`w-full h-full object-cover transition-transform duration-500 ${
             isAvailable ? 'group-hover:scale-110' : ''
           }`}
@@ -119,4 +125,4 @@ export function ItemCard({ item }: ItemCardProps) {
       </div>
     </motion.div>
   );
-}
+});

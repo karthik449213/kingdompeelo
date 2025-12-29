@@ -4,18 +4,20 @@ import { API_BASE_URL } from '@/lib/utils';
 
 const WS_URL = import.meta.env.VITE_WS_URL || API_BASE_URL;
 
+// Store socket instance (only connect when needed)
 let socket: Socket | null = null;
 
 export function useSocket() {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    // Only connect if not already connected
     if (!socket) {
       socket = io(WS_URL, {
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        reconnectionAttempts: 5
+        reconnectionAttempts: 3 // Limit reconnection attempts to save battery
       });
 
       socket.on('connect', () => {
@@ -29,12 +31,21 @@ export function useSocket() {
       });
     }
 
+    // Don't auto-disconnect - let parent component control lifecycle
     return () => {
-      // Don't disconnect on unmount - keep connection alive
+      // Component unmount - keep socket alive for global use
     };
   }, []);
 
   return { socket, isConnected };
+}
+
+// Disconnect socket explicitly when needed (e.g., on logout)
+export function disconnectSocket() {
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
 }
 
 export function useOrderUpdates(onNewOrder: (order: any) => void, onStatusUpdate: (data: any) => void) {

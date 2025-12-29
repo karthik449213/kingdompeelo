@@ -2,7 +2,8 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ItemCard } from '@/components/menu/ItemCard';
 import { useMenu } from '@/store/useMenu';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import React from 'react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useLocation } from 'wouter';
@@ -10,7 +11,8 @@ import CategorySheet from '@/components/menu/categorysheet';
 import { Button } from '@/components/ui/button';
 import { Menu as MenuIcon } from 'lucide-react';
 
-export default function Menu() {
+// PERFORMANCE: Memoize Menu to avoid unnecessary re-renders
+const Menu = React.memo(function Menu() {
   const { categories, subCategories, items, fetchMenu } = useMenu();
   const [location] = useLocation();
   const [isLoading, setIsLoading] = useState(true);
@@ -19,42 +21,53 @@ export default function Menu() {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     const loadMenu = async () => {
       setIsLoading(true);
       await fetchMenu();
-      setIsLoading(false);
+      if (isMounted) setIsLoading(false);
     };
     loadMenu();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => { isMounted = false; };
+  }, [fetchMenu]);
 
-  // Handle query parameters from URL
+  // PERFORMANCE: Debounce category changes to avoid excessive re-renders
   useEffect(() => {
-    const params = new URLSearchParams(location.split('?')[1]);
-    const categoryParam = params.get('category');
-    if (categoryParam) {
-      // Try to find category by ID or slug
-      const matchedCategory = categories.find(
-        cat => cat.id === categoryParam || (cat as any).slug === categoryParam
-      );
-      if (matchedCategory) {
-        setActiveCategory(matchedCategory.id);
-      } else {
-        setActiveCategory(categoryParam);
+    const handler = setTimeout(() => {
+      const params = new URLSearchParams(location.split('?')[1]);
+      const categoryParam = params.get('category');
+      if (categoryParam) {
+        // Try to find category by ID or slug
+        const matchedCategory = categories.find(
+          cat => cat.id === categoryParam || (cat as any).slug === categoryParam
+        );
+        if (matchedCategory) {
+          setActiveCategory(matchedCategory.id);
+        } else {
+          setActiveCategory(categoryParam);
+        }
+        setActiveSubCategory('all');
       }
-      setActiveSubCategory('all');
-    }
+    }, 150); // 150ms debounce
+    return () => clearTimeout(handler);
   }, [location, categories]);
 
-  const filteredSubCategories = activeCategory === 'all' 
-    ? subCategories 
-    : subCategories.filter(sc => sc.categoryId === activeCategory);
+  // PERFORMANCE: Memoize filtered results to prevent unnecessary re-computation
+  const filteredSubCategories = useMemo(() =>
+    activeCategory === 'all' 
+      ? subCategories 
+      : subCategories.filter(sc => sc.categoryId === activeCategory),
+    [activeCategory, subCategories]
+  );
 
-  const filteredItems = items.filter(item => {
-    const matchesCategory = activeCategory === 'all' || item.categoryId === activeCategory;
-    const matchesSubCategory = activeSubCategory === 'all' || item.subCategoryId === activeSubCategory;
-    return matchesCategory && matchesSubCategory;
-  });
+  const filteredItems = useMemo(() =>
+    items.filter(item => {
+      const matchesCategory = activeCategory === 'all' || item.categoryId === activeCategory;
+      const matchesSubCategory = activeSubCategory === 'all' || item.subCategoryId === activeSubCategory;
+      return matchesCategory && matchesSubCategory;
+    }),
+    [items, activeCategory, activeSubCategory]
+  );
 
   // SEO: Generate page title and description based on filters
   const getPageTitle = () => {
@@ -293,4 +306,6 @@ export default function Menu() {
       <Footer />
     </div>
   );
-}
+});
+
+export default Menu;

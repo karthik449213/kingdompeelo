@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
 import { ArrowRight } from 'lucide-react';
+import { optimizeCategoryImage } from '@/lib/cloudinary';
 import type { Category } from '@/store/useMenu';
 
 interface CategoryCardProps {
@@ -11,6 +12,8 @@ interface CategoryCardProps {
 export function CategoryCard({ category, index }: CategoryCardProps) {
   // Use slug if available for better URL readability, otherwise use ID
   const categoryIdentifier = (category as any).slug || category.id;
+  // PERFORMANCE: Use optimized image URL
+  const optimizedImage = optimizeCategoryImage(category.image);
   
   return (
     <Link href={`/menu?category=${categoryIdentifier}`}>
@@ -23,7 +26,7 @@ export function CategoryCard({ category, index }: CategoryCardProps) {
       >
         <div 
           className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110 md:group-active:scale-105"
-          style={{ backgroundImage: `url(${category.image})` }}
+          style={{ backgroundImage: `url(${optimizedImage})` }}
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 md:group-active:opacity-85 transition-opacity" />
         

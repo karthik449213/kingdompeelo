@@ -69,167 +69,56 @@ export const useMenu = create<MenuState>()(
           const subCategories: SubCategory[] = [];
           const items: Item[] = [];
 
-          // Try to get auth token if available (for admin or authenticated users)
-          const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
-          const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-
-          // Primary: Try /api/menu/organized endpoint (best for public users)
-          try {
-            const organizedUrl = `${API_BASE_URL}/api/menu/organized`;
-            
-            const organizedResponse = await fetch(organizedUrl, { headers }).then(r => r.json());
-
-            let data = organizedResponse?.data || organizedResponse;
-            if (Array.isArray(data) && data.length > 0) {
-              data.forEach((categoryData: any) => {
-                const category: Category = {
-                  id: categoryData._id,
-                  title: categoryData.name,
-                  image: categoryData.image,
-                  slug: categoryData.slug,
-                };
-                categories.push(category);
-
-                if (Array.isArray(categoryData.subCategories)) {
-                  categoryData.subCategories.forEach((subCatData: any) => {
-                    const subCategory: SubCategory = {
-                      id: subCatData._id,
-                      title: subCatData.name,
-                      parentId: categoryData._id,
-                      slug: subCatData.slug,
-                      categoryId: categoryData._id,
-                    };
-                    subCategories.push(subCategory);
-
-                    if (Array.isArray(subCatData.dishes)) {
-                      subCatData.dishes.forEach((dishData: any) => {
-                        const item: Item = {
-                          id: dishData._id,
-                          title: dishData.name,
-                          description: dishData.description,
-                          price: dishData.price,
-                          image: dishData.image,
-                          available: dishData.available,
-                          stars: dishData.stars,
-                          categoryId: categoryData._id,
-                          subCategoryId: subCatData._id,
-                        };
-                        items.push(item);
-                      });
-                    }
-                  });
-                }
-              });
-            }
-          } catch (organizedError) {
-          }
-
-          // Fallback: Try /api/menu/dishes endpoint (same as admin uses)
-          if (items.length === 0) {
-            try {
-              const dishesUrl = `${API_BASE_URL}/api/menu/dishes?limit=1000`;
-              const dishesResponse = await fetch(dishesUrl, { headers }).then(r => r.json());
-
-              let dishesArray = dishesResponse?.dishes || (Array.isArray(dishesResponse) ? dishesResponse : []);
-              
-              if (Array.isArray(dishesArray) && dishesArray.length > 0) {
-                
-                // Extract unique categories from dishes
-                const categoryMap = new Map();
-                const subCategoryMap = new Map();
-                
-                dishesArray.forEach((dishData: any) => {
-                  const catId = dishData.category?._id || dishData.categoryId;
-                  const subCatId = dishData.subCategory?._id || dishData.subCategoryId;
-                  
-                  // Add category
-                  if (catId && !categoryMap.has(catId)) {
-                    categoryMap.set(catId, {
-                      id: catId,
-                      title: dishData.category?.name || 'Uncategorized',
-                      image: dishData.category?.image || 'https://via.placeholder.com/300',
-                      slug: dishData.category?.slug,
-                    });
-                  }
-
-                  // Add subcategory
-                  if (subCatId && !subCategoryMap.has(subCatId)) {
-                    subCategoryMap.set(subCatId, {
-                      id: subCatId,
-                      title: dishData.subCategory?.name || 'General',
-                      parentId: catId,
-                      categoryId: catId,
-                      slug: dishData.subCategory?.slug,
-                    });
-                  }
-
-                  // Add item
-                  const item: Item = {
-                    id: dishData._id,
-                    title: dishData.name,
-                    description: dishData.description,
-                    price: dishData.price,
-                    image: dishData.image,
-                    available: dishData.available,
-                    stars: dishData.stars,
-                    categoryId: catId,
-                    subCategoryId: subCatId,
-                  };
-                  items.push(item);
-                });
-
-                categories.push(...Array.from(categoryMap.values()));
-                subCategories.push(...Array.from(subCategoryMap.values()));
-              }
-            } catch (dishesError) {
-            }
-          }
-
-          // Last resort: Try standalone dishes
-          if (items.length === 0) {
-            try {
-              const standaloneUrl = `${API_BASE_URL}/api/menu/dishes/standalone/all?limit=1000`;
-              const standaloneResponse = await fetch(standaloneUrl, { headers }).then(r => r.json());
-
-              let standaloneArray = standaloneResponse?.dishes || (Array.isArray(standaloneResponse) ? standaloneResponse : []);
-              
-              if (Array.isArray(standaloneArray) && standaloneArray.length > 0) {
-                
-                const categoryMap = new Map();
-                standaloneArray.forEach((dishData: any) => {
-                  const catId = dishData.category?._id || dishData.categoryId;
-                  if (catId && !categoryMap.has(catId)) {
-                    categoryMap.set(catId, {
-                      id: catId,
-                      title: dishData.category?.name || 'Uncategorized',
-                      image: dishData.category?.image || 'https://via.placeholder.com/300',
-                      slug: dishData.category?.slug,
-                    });
-                  }
-
-                  const item: Item = {
-                    id: dishData._id,
-                    title: dishData.name,
-                    description: dishData.description,
-                    price: dishData.price,
-                    image: dishData.image,
-                    available: dishData.available,
-                    stars: dishData.stars,
-                    categoryId: catId,
-                    subCategoryId: undefined,
-                  };
-                  items.push(item);
-                });
-
-                categories.push(...Array.from(categoryMap.values()));
-              }
-            } catch (standaloneError) {
-            }
-          }
+          // Use the consolidated /api/menu/organized endpoint with built-in caching
+          const organizedUrl = `${API_BASE_URL}/api/menu/organized`;
           
+          const organizedResponse = await fetch(organizedUrl).then(r => r.json());
+
+          let data = organizedResponse?.data || organizedResponse;
+          if (Array.isArray(data) && data.length > 0) {
+            data.forEach((categoryData: any) => {
+              const category: Category = {
+                id: categoryData._id,
+                title: categoryData.name,
+                image: categoryData.image,
+                slug: categoryData.slug,
+              };
+              categories.push(category);
+
+              if (Array.isArray(categoryData.subCategories)) {
+                categoryData.subCategories.forEach((subCatData: any) => {
+                  const subCategory: SubCategory = {
+                    id: subCatData._id,
+                    title: subCatData.name,
+                    parentId: categoryData._id,
+                    slug: subCatData.slug,
+                    categoryId: categoryData._id,
+                  };
+                  subCategories.push(subCategory);
+
+                  if (Array.isArray(subCatData.dishes)) {
+                    subCatData.dishes.forEach((dishData: any) => {
+                      const item: Item = {
+                        id: dishData._id,
+                        title: dishData.name,
+                        description: dishData.description,
+                        price: dishData.price,
+                        image: dishData.image,
+                        available: dishData.available,
+                        stars: dishData.stars,
+                        categoryId: categoryData._id,
+                        subCategoryId: subCatData._id,
+                      };
+                      items.push(item);
+                    });
+                  }
+                });
+              }
+            });
+          }
+
           // Update state all at once
           set({ categories, subCategories, items });
-          
         } catch (error) {
           toast({ title: "Error", description: "Failed to load menu data." });
         }

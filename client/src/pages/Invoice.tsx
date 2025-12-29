@@ -92,13 +92,13 @@ export default function Invoice() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
+    <div className="min-h-screen bg-linear-to-br from-amber-50 via-white to-orange-50">
       <Navbar />
       
       <div className="container mx-auto px-4 py-12 pt-24">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="inline-block bg-gradient-to-r from-primary to-orange-500 text-primary-foreground px-4 py-2 rounded-full text-sm font-semibold mb-3">
+          <div className="inline-block bg-linear-to-r from-primary to-orange-500 text-primary-foreground px-4 py-2 rounded-full text-sm font-semibold mb-3">
             Order Invoice
           </div>
           <h1 className="text-4xl font-serif font-bold text-foreground mb-2">Order Summary</h1>
@@ -264,7 +264,7 @@ export default function Invoice() {
           </div>
           <div className="flex justify-between items-center">
             <span className="text-xl font-bold text-foreground">Total Amount</span>
-            <span className="text-3xl font-bold bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">
+            <span className="text-3xl font-bold bg-linear-to-r from-primary to-orange-500 bg-clip-text text-transparent">
               ₹{total().toFixed(2)}
             </span>
           </div>
