@@ -37,7 +37,8 @@ export default function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {categories.map((category, idx) => (
-            <CategoryCard key={category.id} category={category} index={idx} />
+            // PERFORMANCE: First 3 categories are above the fold
+            <CategoryCard key={category.id} category={category} index={idx} isAboveTheFold={idx < 3} />
           ))}
         </div>
       </section>
@@ -56,8 +57,8 @@ export default function Home() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {categories.map((category, idx) => (
-            <CategoryCard key={category.id} category={category} index={idx} />
-          ))}
+              <CategoryCard key={category.id} category={category} index={idx} isAboveTheFold={false} />
+            ))}
           </div>
 
           <div className="mt-10 text-center md:hidden">

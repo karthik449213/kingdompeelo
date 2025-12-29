@@ -7,9 +7,10 @@ import type { Category } from '@/store/useMenu';
 interface CategoryCardProps {
   category: Category;
   index: number;
+  isAboveTheFold?: boolean; // PERFORMANCE: Track if image is visible on page load
 }
 
-export function CategoryCard({ category, index }: CategoryCardProps) {
+export function CategoryCard({ category, index, isAboveTheFold = false }: CategoryCardProps) {
   // Use slug if available for better URL readability, otherwise use ID
   const categoryIdentifier = (category as any).slug || category.id;
   // PERFORMANCE: Use optimized image URL
@@ -24,9 +25,16 @@ export function CategoryCard({ category, index }: CategoryCardProps) {
         transition={{ delay: index * 0.1 }}
         className="group relative h-80 md:h-96 w-full overflow-hidden rounded-2xl cursor-pointer shadow-lg active:shadow-2xl transition-shadow md:active:shadow-lg"
       >
-        <div 
-          className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110 md:group-active:scale-105"
-          style={{ backgroundImage: `url(${optimizedImage})` }}
+        {/* PERFORMANCE: Add explicit dimensions, fetchpriority for LCP image */}
+        <img 
+          src={optimizedImage}
+          alt={category.title}
+          width={400}
+          height={300}
+          loading={isAboveTheFold ? "eager" : "lazy"}
+          fetchPriority={isAboveTheFold ? "high" : "auto"}
+          decoding="async"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 md:group-active:scale-105"
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 md:group-active:opacity-85 transition-opacity" />
         

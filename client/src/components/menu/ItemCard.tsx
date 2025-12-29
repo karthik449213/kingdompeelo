@@ -64,6 +64,8 @@ export const ItemCard = memo(function ItemCard({ item }: ItemCardProps) {
         <img 
           src={optimizedImage} 
           alt={item.title}
+          width={300}
+          height={300}
           loading="lazy"
           decoding="async"
           className={`w-full h-full object-cover transition-transform duration-500 ${
